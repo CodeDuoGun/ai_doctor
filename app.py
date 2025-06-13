@@ -488,8 +488,9 @@ with gr.Blocks() as demo:
     # 创建聊天布局
     with gr.Row():
         with gr.Column(scale=10):
+            gr.Image(value="data/cache/ai_girl.png", height=600, show_label=False)
             chatbot = gr.Chatbot(
-                height=600,
+                height=100,
                 avatar_images=AVATAR,
                 show_copy_button=True,
                 latex_delimiters=[
@@ -498,7 +499,9 @@ with gr.Blocks() as demo:
                     {"left": "$$", "right": "$$", "display": True},
                     {"left": "$", "right": "$", "display": True},
                 ],
-                placeholder="\n## 欢迎与我对话 \n————本项目开源地址https://github.com/Warma10032/cyber-doctor",
+                placeholder=
+                # "![欢迎图](file/data/cache/ai_girl.png)\n"
+                "## 欢迎与我对话 \n"
             )
 
     with gr.Row():
