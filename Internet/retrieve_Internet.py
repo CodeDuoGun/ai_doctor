@@ -8,6 +8,6 @@ def format_docs(docs:List[Document]):
 
 def retrieve_html(question:str)->Tuple[List[Document],str]:
     docs = retrieve(question) # 这里的到的是文件
-    print(f"docs: {docs}")
+    # print(f"docs: {docs}")
     _context = format_docs(docs) # 这里处理成文本
     return (docs,_context)

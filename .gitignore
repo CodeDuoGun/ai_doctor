@@ -193,3 +193,8 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 data/*
+logs/
+.DS_Store
+model/wav2lip/*.pth
+model/wav2lip/face_detection/detection/sfd/*.pth
+results/*
