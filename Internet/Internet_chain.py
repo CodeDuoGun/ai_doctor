@@ -172,4 +172,4 @@ def has_html_files(directory_path):
         return False
     else:
         return False
-InternetSearchChain("今天周几了,北京朝阳区天气怎么样", [])
+# InternetSearchChain("今天周几了,北京朝阳区天气怎么样", [])
