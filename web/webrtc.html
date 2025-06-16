@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WebRTC + Audio Recording</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f5f5f5;
+      padding: 20px;
+    }
+
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      font-size: 14px;
+    }
+
+    #media {
+      max-width: 720px;
+      width: 100%;
+      padding: 16px;
+      margin-top: 20px;
+      background: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    video {
+      width: 100%;
+      max-width: 640px;
+      border-radius: 8px;
+    }
+
+    textarea {
+      width: 600px;
+      height: 60px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🎥 摄像头 + 🎤 语音发送</h2>
+
+  <div class="option">
+    <input id="use-stun" type="checkbox"/>
+    <label for="use-stun">Use STUN server</label>
+  </div>
+
+  <div>
+    <button id="start" onclick="start()">Start Camera</button>
+    <button id="stop" style="display: none" onclick="stop()">Stop Camera</button>
+  </div>
+
+  <form id="echo-form">
+    <p>输入文本：</p>
+    <textarea id="message">今天天气</textarea><br/>
+    <button type="submit">发送文本</button>
+  </form>
+
+  <div>
+    <button id="start-record">🎤 开始录音</button>
+    <button id="stop-record" disabled>⏹️ 停止并发送</button>
+  </div>
+
+  <div id="media">
+    <h3>媒体区域</h3>
+    <video id="video" autoplay playsinline></video>
+    <audio id="audio" autoplay></audio>
+  </div>
+  <script src="client.js"></script>
+  <script src="http://cdn.sockjs.org/sockjs-0.3.4.js"></script>
+  <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.1.1.min.js"></script>
+
+  <script>
+    let ws;
+    let localStream;
+    let mediaRecorder;
+    let audioChunks = [];
+
+    $(document).ready(function () {
+      const host = window.location.hostname;
+      ws = new WebSocket("ws://" + host + ":8765");
+
+      ws.onopen = function () {
+        console.log('✅ WebSocket 已连接');
+      };
+
+      ws.onmessage = function (e) {
+        console.log('📩 收到消息: ' + e.data);
+      };
+
+      ws.onclose = function () {
+        console.log('❌ WebSocket 关闭');
+      };
+
+      $('#echo-form').on('submit', function (e) {
+        e.preventDefault();
+        const message = $('#message').val();
+        console.log('📤 发送文本: ' + message);
+        ws.send(message);
+        $('#message').val('');
+      });
+    });
+
+    // 录音相关逻辑
+    document.getElementById("start-record").onclick = async () => {
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = event => {
+          if (event.data.size > 0) {
+            audioChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          sendAudioBlob(audioBlob);
+        };
+
+        mediaRecorder.start();
+        console.log("🎙️ 开始录音");
+        document.getElementById("start-record").disabled = true;
+        document.getElementById("stop-record").disabled = false;
+      } catch (err) {
+        console.error("🎙️ 无法开始录音:", err);
+      }
+    };
+
+    document.getElementById("stop-record").onclick = () => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        console.log("🛑 停止录音");
+        document.getElementById("start-record").disabled = false;
+        document.getElementById("stop-record").disabled = true;
+      }
+    };
+
+    function sendAudioBlob(blob) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const arrayBuffer = reader.result;
+        ws.send(arrayBuffer); // 二进制音频发送
+        console.log("📤 音频已发送");
+      };
+      reader.readAsArrayBuffer(blob);
+    }
+  </script>
+</body>
+</html>
