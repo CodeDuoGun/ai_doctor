@@ -15,6 +15,10 @@ from threading import Thread, Event
 import dashscope
 from dashscope.audio.tts_v2 import *
 import threading
+import os
+import base64
+import numpy as np
+
 dashscope.api_key = "sk-325f79c2085d481c9a8a3e625c9a698b"
 from enum import Enum
 
@@ -247,85 +251,40 @@ class XTTS(BaseTTS):
 class CustomTTS(BaseTTS):
     def txt_to_audio(self,msg): 
         self.stream_tts(
-            self.synthesis_text_to_speech_and_play_by_streaming_mode(
-                msg,
-            )
+            self.request_qwen_stream_tts(msg)
         )
     
     def stream_tts(self, audio_stream):
-        streamlen = len(audio_stream)
-        idx = 0
-        while streamlen >= self.chunk and self.state==State.RUNNING:
-            self.parent.put_audio_frame(audio_stream[idx:idx+self.chunk])
-            streamlen -= self.chunk
-            idx += self.chunk
-        # for chunk in audio_stream:
-        #     if chunk is not None and len(chunk)>0:          
-        #         stream = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
-        #         stream = resampy.resample(x=stream, sr_orig=32000, sr_new=self.sample_rate)
-        #         #byte_stream=BytesIO(buffer)
-        #         #stream = self.__create_bytes_stream(byte_stream)
-        #         streamlen = stream.shape[0]
-        #         idx=0
-        #         while streamlen >= self.chunk:
-        #             self.parent.put_audio_frame(stream[idx:idx+self.chunk])
-        #             streamlen -= self.chunk
-        #             idx += self.chunk 
+        # streamlen = len(audio_stream)
+        # idx = 0
+        # while streamlen >= self.chunk and self.state==State.RUNNING:
+        #     self.parent.put_audio_frame(audio_stream[idx:idx+self.chunk])
+        #     streamlen -= self.chunk
+        #     idx += self.chunk
+        for chunk in audio_stream:
+            if chunk is not None and len(chunk)>0:          
+                stream = np.frombuffer(chunk, dtype=np.int16).astype(np.float32) / 32767
+                stream = resampy.resample(x=stream, sr_orig=24000, sr_new=self.sample_rate)
+                #byte_stream=BytesIO(buffer)
+                #stream = self.__create_bytes_stream(byte_stream)
+                streamlen = stream.shape[0]
+                idx=0
+                while streamlen >= self.chunk:
+                    self.parent.put_audio_frame(stream[idx:idx+self.chunk])
+                    streamlen -= self.chunk
+                    idx += self.chunk 
 
-    def synthesis_text_to_speech_and_play_by_streaming_mode(self, text, ref_voice:str="longyuan"):
-        '''
-        Synthesize speech with given text by streaming mode, async call and play the synthesized audio in real-time.
-        for more information, please refer to https://help.aliyun.com/document_detail/2712523.html
-        '''
-        # Define a callback to handle the result
-        complete_event = threading.Event()
-
-        class Callback(ResultCallback):
-            def on_open(self):
-                # self.file = open('result.mp3', 'wb')
-                self.audio_stream = b''
-                print('websocket is open.')
-
-            def on_complete(self):
-                print('speech synthesis task complete successfully.')
-                complete_event.set()
-                # self.file.close()
-
-            def on_error(self, message: str):
-                print(f'speech synthesis task failed, {message}')
-
-            def on_close(self):
-                print('websocket is closed.')
-                # self.file.close()
-
-            def on_event(self, message):
-                # print(f'recv speech synthsis message {message}')
-                pass
-
-            def on_data(self, data: bytes) -> None:
-                # send to player
-                self.audio_stream += data
-                # save audio to file
-                # self.file.write(data)
-
-        # Call the speech synthesizer callback
-        synthesizer_callback = Callback()
-
-        # Initialize the speech synthesizer
-        # you can customize the synthesis parameters, like voice, format, sample_rate or other parameters
-        speech_synthesizer = SpeechSynthesizer(model='cosyvoice-v1',
-                                            voice=ref_voice,
-                                            callback=synthesizer_callback)
-
-        # 非流式
-        speech_synthesizer.call(text)
-        # 流式
-        # speech_synthesizer.streaming_call(text)
-        # speech_synthesizer.streaming_complete()
-        print('Synthesized text: {}'.format(text))
-        complete_event.wait() 
-        print('[Metric] requestId: {}, first package delay ms: {}'.format(
-            speech_synthesizer.get_last_request_id(),
-            speech_synthesizer.get_first_package_delay()))
-        return synthesizer_callback.audio_stream
-        
+    def request_qwen_stream_tts(self, text):
+        # text = "那我来给大家推荐一款T恤，这款呢真的是超级好看，这个颜色呢很显气质，而且呢也是搭配的绝佳单品，大家可以闭眼入，真的是非常好看，对身材的包容性也很好，不管啥身材的宝宝呢，穿上去都是很好看的。推荐宝宝们下单哦。"
+        response = dashscope.audio.qwen_tts.SpeechSynthesizer.call(
+            model="qwen-tts",
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            text=text,
+            voice="Cherry",
+            stream=True
+        )
+        for chunk in response:
+            audio_string = chunk["output"]["audio"]["data"]
+            owav_bytes = base64.b64decode(audio_string)
+            yield owav_bytes
+            

@@ -10,25 +10,56 @@ import json
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from human_player import HumanPlayer
 from llm.LLM import LLM
+from asr.FunASR import AliFunASR
 global nerfreal
+asr = AliFunASR()
 
 def health_check(connection, request):
     if request.path == "/healthz":
         return connection.respond(HTTPStatus.OK, "OK\n")
 
-def llm_response(message):
+# TODO: need a queue to deal
+async def llm_response(message):
     qwen = LLM().init_model('Qwen', model_path="")
     response = qwen.chat(message)
     return response
+
+import wave
+
+def pcm_to_wav(pcm_data, wav_file, channels=1, sample_rate=16000, bits_per_sample=16):
+    wav = wave.open(wav_file, 'wb')
+    wav.setnchannels(channels)
+    wav.setsampwidth(2)
+    wav.setframerate(sample_rate)
+    wav.writeframes(pcm_data)
+    wav.close()
+
+
+# TODO: need a queue to deal
+async def request_asr(audio_bytes):
+    # cache
+    cache_path = "data/cache/audio/audio.wav"
+    # pcm_to_wav(audio_bytes, cache_path)
+    with open(cache_path, "wb") as fp:
+        fp.write(audio_bytes)
+    return asr.recognize(audio_bytes)
 
 async def echo(websocket):
     async for message in websocket:
         logger.info(f"收到消息{type(message)}")
         # 暂时处理文本类型
         if isinstance(message, str):
-            res=llm_response(message)                           
-            nerfreal.put_msg_txt(res)
-        await websocket.send(message)
+            res = await llm_response(message)
+        elif isinstance(message, bytes):
+            # asr queue -> nlp
+            print(message[:100])
+            asr_text = await request_asr(message)
+            res = await llm_response(asr_text)
+        await websocket.send(res)                     
+        nerfreal.put_msg_txt(res)
+
+
+        # await websocket.send(message)
 
 async def websocket_server():
     async with serve(echo, "localhost", 8765, process_request=health_check) as server:

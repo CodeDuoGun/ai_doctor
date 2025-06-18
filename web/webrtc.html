@@ -60,9 +60,16 @@
   </div>
 
   <form id="echo-form">
-    <p>输入文本：</p>
-    <textarea id="message">今天天气</textarea><br/>
-    <button type="submit">发送文本</button>
+    <div style="display: flex; flex-direction: column; align-items: flex-start;">
+      <label for="message">输入文本：</label>
+      <textarea id="message">今天天气</textarea>
+      <button type="submit">发送文本</button>
+    </div>
+  
+    <div style="display: flex; flex-direction: column; align-items: flex-start;">
+      <label for="ai-response">AI 文本：</label>
+      <textarea id="ai-response" readonly style="background-color: #eee;"></textarea>
+    </div>
   </form>
 
   <div>
@@ -78,84 +85,133 @@
   <script src="client.js"></script>
   <script src="http://cdn.sockjs.org/sockjs-0.3.4.js"></script>
   <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.1.1.min.js"></script>
+<script>
+  let ws;
+  let audioContext;
+  let mediaStream;
+  let processor;
+  let audioData = [];
 
-  <script>
-    let ws;
-    let localStream;
-    let mediaRecorder;
-    let audioChunks = [];
+  $(document).ready(function () {
+    const host = window.location.hostname;
+    ws = new WebSocket("ws://" + host + ":8765");
 
-    $(document).ready(function () {
-      const host = window.location.hostname;
-      ws = new WebSocket("ws://" + host + ":8765");
+    ws.onopen = function () {
+      console.log('✅ WebSocket 已连接');
+    };
 
-      ws.onopen = function () {
-        console.log('✅ WebSocket 已连接');
-      };
+    ws.onmessage = function (e) {
+      console.log('📩 收到消息: ' + e.data);
+      document.getElementById("ai-response").value = e.data;
+    };
 
-      ws.onmessage = function (e) {
-        console.log('📩 收到消息: ' + e.data);
-      };
+    ws.onclose = function () {
+      console.log('❌ WebSocket 关闭');
+    };
 
-      ws.onclose = function () {
-        console.log('❌ WebSocket 关闭');
-      };
-
-      $('#echo-form').on('submit', function (e) {
-        e.preventDefault();
-        const message = $('#message').val();
-        console.log('📤 发送文本: ' + message);
-        ws.send(message);
-        $('#message').val('');
-      });
+    $('#echo-form').on('submit', function (e) {
+      e.preventDefault();
+      const message = $('#message').val();
+      console.log('📤 发送文本: ' + message);
+      ws.send(message);
+      $('#message').val('');
     });
+  });
 
-    // 录音相关逻辑
-    document.getElementById("start-record").onclick = async () => {
-      try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+  // 开始录音
+  document.getElementById("start-record").onclick = async () => {
+    audioData = [];
+    audioContext = new AudioContext({ sampleRate: 16000 }); // 适配后端
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        audioChunks = [];
+    const source = audioContext.createMediaStreamSource(mediaStream);
 
-        mediaRecorder.ondataavailable = event => {
-          if (event.data.size > 0) {
-            audioChunks.push(event.data);
-          }
-        };
+    processor = audioContext.createScriptProcessor(4096, 1, 1);
+    source.connect(processor);
+    processor.connect(audioContext.destination);
 
-        mediaRecorder.onstop = () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          sendAudioBlob(audioBlob);
-        };
-
-        mediaRecorder.start();
-        console.log("🎙️ 开始录音");
-        document.getElementById("start-record").disabled = true;
-        document.getElementById("stop-record").disabled = false;
-      } catch (err) {
-        console.error("🎙️ 无法开始录音:", err);
-      }
+    processor.onaudioprocess = e => {
+      const input = e.inputBuffer.getChannelData(0);
+      audioData.push(new Float32Array(input));
     };
 
-    document.getElementById("stop-record").onclick = () => {
-      if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-        console.log("🛑 停止录音");
-        document.getElementById("start-record").disabled = false;
-        document.getElementById("stop-record").disabled = true;
-      }
-    };
+    console.log("🎙️ 开始录音");
+    document.getElementById("start-record").disabled = true;
+    document.getElementById("stop-record").disabled = false;
+  };
 
-    function sendAudioBlob(blob) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const arrayBuffer = reader.result;
-        ws.send(arrayBuffer); // 二进制音频发送
-        console.log("📤 音频已发送");
-      };
-      reader.readAsArrayBuffer(blob);
+  // 停止录音并发送为 WAV Blob
+  document.getElementById("stop-record").onclick = () => {
+    processor.disconnect();
+    mediaStream.getTracks().forEach(track => track.stop());
+
+    const blob = encodeWAV(audioData, audioContext.sampleRate);
+    sendAudioBlob(blob);
+
+    document.getElementById("start-record").disabled = false;
+    document.getElementById("stop-record").disabled = true;
+    console.log("🛑 停止录音");
+  };
+
+  // 发送音频 Blob
+  function sendAudioBlob(blob) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const arrayBuffer = reader.result;
+      ws.send(arrayBuffer);
+      console.log("📤 已发送 WAV 音频，大小:", blob.size);
+    };
+    reader.readAsArrayBuffer(blob);
+  }
+
+  // 手动封装 WAV
+  function encodeWAV(samples, sampleRate = 16000) {
+    const merged = flattenArray(samples);
+    const buffer = new ArrayBuffer(44 + merged.length * 2);
+    const view = new DataView(buffer);
+
+    // WAV header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + merged.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true); // Subchunk1Size
+    view.setUint16(20, 1, true);  // PCM
+    view.setUint16(22, 1, true);  // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // ByteRate
+    view.setUint16(32, 2, true); // BlockAlign
+    view.setUint16(34, 16, true); // BitsPerSample
+    writeString(view, 36, 'data');
+    view.setUint32(40, merged.length * 2, true);
+
+    // PCM samples
+    floatTo16BitPCM(view, 44, merged);
+
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  function flattenArray(chunks) {
+    const length = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const result = new Float32Array(length);
+    let offset = 0;
+    chunks.forEach(chunk => {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    });
+    return result;
+  }
+
+  function floatTo16BitPCM(view, offset, input) {
+    for (let i = 0; i < input.length; i++) {
+      const s = Math.max(-1, Math.min(1, input[i]));
+      view.setInt16(offset + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
     }
-  </script>
-</body>
-</html>
+  }
+
+  function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+</script>

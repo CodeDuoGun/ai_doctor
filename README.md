@@ -1,20 +1,24 @@
-# ai_doctor
+1、启动语言识别服务端
+创建虚拟环境
+conda create -n funasr
+conda activate funasr
+安装依赖库
+pip install torch
+pip install modelscope
+pip install testresources
+pip install websockets
+pip install torchaudio
+pip install FunASR
+pip install pyaudio
 
-# 新增内容如下
-1.实时语音对话
-2.补充多模态对话支持
-3.医疗知识图谱 
 
-# How to use
-```bash
-1. ready conda env
-2. 
+python funasr_wss_server.py --port 10095
+或者
+python funasr_wss_server.py --host "0.0.0.0" --port 10197 --ngpu 0 
 
-```
 
-# refer project
-本项目参考了以下开源项目，感谢他／她们的付出
-https://github.com/Warma10032/cyber-doctor
 
-# Contribution
 
+
+https://github.com/alibaba-damo-academy/FunASR
+https://zhuanlan.zhihu.com/p/649935170
