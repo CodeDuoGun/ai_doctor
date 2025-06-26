@@ -1,19 +1,26 @@
 import os
-from openai import OpenAI
+import openai
+
+'''
+`huggingface`连接不上可以使用 `modelscope`
+`pip install modelscope`
+'''
+from modelscope import AutoModelForCausalLM, AutoTokenizer
 #from transformers import AutoModelForCausalLM, AutoTokenizer
+
+os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+
+
 class Qwen:
-    def __init__(self, model_path="Qwen/Qwen-1_8B-Chat", api_base="https://dashscope.aliyuncs.com/compatible-mode/v1", api_key="sk-54ffdb767a6e4d4f87df5a789a75ec9f") -> None:
+    def __init__(self, model_path="Qwen/Qwen-1_8B-Chat", api_base=None, api_key=None) -> None:
         '''暂时不写api版本,与Linly-api相类似,感兴趣可以实现一下'''
         # 默认本地推理
         self.local = True
 
         # api_base和api_key不为空时使用openapi的方式
         if api_key is not None and api_base is not None:
-            self.client = OpenAI(
-                # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
-                api_key=api_key,
-                base_url=api_base,
-            )
+            openai.api_base = api_base
+            openai.api_key = api_key
             self.local = False
             return
 
@@ -21,12 +28,6 @@ class Qwen:
         self.data = {}
 
     def init_model(self, path="Qwen/Qwen-1_8B-Chat"):
-        '''
-            `huggingface`连接不上可以使用 `modelscope`
-            `pip install modelscope`
-        '''
-        from modelscope import AutoModelForCausalLM, AutoTokenizer
-        # os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
         model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen-1_8B-Chat",
                                                      device_map="auto",
                                                      trust_remote_code=True).eval()
@@ -38,10 +39,9 @@ class Qwen:
         # 优先调用qwen openapi的方式
         if not self.local:
             # 不使用流式回复的请求
-            response = self.client.chat.completions.create(
-                model="qwen-max-2024-04-03",
+            response = openai.ChatCompletion.create(
+                model="Qwen",
                 messages=[
-                    {"role": "system", "content": "你是一个小助手"},
                     {"role": "user", "content": question}
                 ],
                 stream=False,
@@ -58,23 +58,6 @@ class Qwen:
         except:
             return "对不起，你的请求出错了，请再次尝试。\nSorry, your request has encountered an error. Please try again.\n"
 
-    def chat_stream(self, question):
-        response = self.client.chat.completions.create(
-            model="qwen-max-2024-04-03",
-            messages=[
-                {"role": "system", "content": "你是一个小助手"},
-                {"role": "user", "content": question}
-            ],
-            stream=True,
-            stop=[]
-        )
-        content = ""
-        for chunk in response:
-            text = chunk.choices[0].delta.content
-            content += text
-        return content
-        # return response.choices[0].message.content  
-
 
 def test():
     llm = Qwen(model_path="Qwen/Qwen-1_8B-Chat")
@@ -82,8 +65,5 @@ def test():
     print(answer)
 
 
-# if __name__ == '__main__':
-#     qwen =Qwen(model_path="")
-#     answer = qwen.chat("你好")
-#     print(answer)
-    # test()
+if __name__ == '__main__':
+    test()

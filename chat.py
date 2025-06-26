@@ -3,6 +3,7 @@
 import asyncio
 from http import HTTPStatus
 from websockets.asyncio.server import serve
+from chat_manager.chat_instance import ChatInstance
 from aiohttp import web
 from utils.log import logger
 import aiohttp_cors
@@ -15,14 +16,14 @@ global nerfreal
 asr = AliFunASR()
 
 def health_check(connection, request):
-    if request.path == "/healthz":
+    if request.path == "/health":
         return connection.respond(HTTPStatus.OK, "OK\n")
 
 # TODO: need a queue to deal
-async def llm_response(message):
-    qwen = LLM().init_model('Qwen', model_path="")
-    response = qwen.chat(message)
-    return response
+# async def llm_response(message):
+#     qwen = LLM().init_model('Qwen', model_path="")
+#     response = qwen.chat_stream(message)
+#     return response
 
 import wave
 
@@ -49,14 +50,14 @@ async def echo(websocket):
         logger.info(f"收到消息{type(message)}")
         # 暂时处理文本类型
         if isinstance(message, str):
-            res = await llm_response(message)
+            pass
+            # res = await llm_response(message)
         elif isinstance(message, bytes):
             # asr queue -> nlp
             print(message[:100])
             asr_text = await request_asr(message)
-            res = await llm_response(asr_text)
+            # res = await llm_response(asr_text)
         await websocket.send(res)                     
-        nerfreal.put_msg_txt(res)
 
 
         # await websocket.send(message)
@@ -68,6 +69,10 @@ async def websocket_server():
 
 pcs = set()
 from lipreal import LipReal
+
+async def start_chatting(request):
+    params = await request.json()
+
 
 
 async def offer(request):
@@ -111,6 +116,7 @@ async def aiohttp_server():
     app.router.add_get('/', handle)
     app.router.add_static('/',path='web')
     app.router.add_post('/offer', offer)
+    app.router.add_post('/start', start_chat) # 先调用这个
     # Configure default CORS settings.
     cors = aiohttp_cors.setup(app, defaults={
             "*": aiohttp_cors.ResourceOptions(

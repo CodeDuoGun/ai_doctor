@@ -103,40 +103,44 @@ def inference(render_event,batch_size,face_imgs_path,audio_feat_queue,audio_out_
                     res_frame_queue.put((None,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
                     index = index + 1
             else:
-                # print('infer=======')
-                t=time.perf_counter()
-                img_batch = []
                 for i in range(batch_size):
-                    idx = __mirror_index(length,index+i)
-                    face = face_list_cycle[idx]
-                    img_batch.append(face)
-                img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
-
-                # TODO: need new face paste back
-                img_masked = img_batch.copy()
-                img_masked[:, face.shape[0]//2:] = 0
-            
-                img_batch = np.concatenate((img_masked, img_batch), axis=3) / 255.
-                mel_batch = np.reshape(mel_batch, [len(mel_batch), mel_batch.shape[1], mel_batch.shape[2], 1])
-                
-                img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(device)
-                mel_batch = torch.FloatTensor(np.transpose(mel_batch, (0, 3, 1, 2))).to(device)
-
-                with torch.no_grad():
-                    pred = model(mel_batch, img_batch)
-                pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
-
-                counttime += (time.perf_counter() - t)
-                count += batch_size
-                #_totalframe += 1
-                if count>=100:
-                    print(f"------actual avg infer fps:{count/counttime:.4f}")
-                    count=0
-                    counttime=0
-                for i,res_frame in enumerate(pred):
-                    #self.__pushmedia(res_frame,loop,audio_track,video_track)
-                    res_frame_queue.put((res_frame,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
+                    res_frame_queue.put((None,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
                     index = index + 1
+            # else:
+            #     # print('infer=======')
+            #     t=time.perf_counter()
+            #     img_batch = []
+            #     for i in range(batch_size):
+            #         idx = __mirror_index(length,index+i)
+            #         face = face_list_cycle[idx]
+            #         img_batch.append(face)
+            #     img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
+
+            #     # TODO: need new face paste back
+            #     img_masked = img_batch.copy()
+            #     img_masked[:, face.shape[0]//2:] = 0
+            
+            #     img_batch = np.concatenate((img_masked, img_batch), axis=3) / 255.
+            #     mel_batch = np.reshape(mel_batch, [len(mel_batch), mel_batch.shape[1], mel_batch.shape[2], 1])
+                
+            #     img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(device)
+            #     mel_batch = torch.FloatTensor(np.transpose(mel_batch, (0, 3, 1, 2))).to(device)
+
+            #     with torch.no_grad():
+            #         pred = model(mel_batch, img_batch)
+            #     pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
+
+            #     counttime += (time.perf_counter() - t)
+            #     count += batch_size
+            #     #_totalframe += 1
+            #     if count>=100:
+            #         print(f"------actual avg infer fps:{count/counttime:.4f}")
+            #         count=0
+            #         counttime=0
+            #     for i,res_frame in enumerate(pred):
+            #         #self.__pushmedia(res_frame,loop,audio_track,video_track)
+            #         res_frame_queue.put((res_frame,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
+            #         index = index + 1
                 #print('total batch time:',time.perf_counter()-starttime)            
         else:
             time.sleep(1)
@@ -196,8 +200,8 @@ class LipReal:
         self.frame_list_cycle = read_imgs(input_img_list)
         
     
-    def put_msg_txt(self,msg):
-        self.tts.put_msg_txt(msg)
+    # def put_msg_txt(self,msg):
+    #     self.tts.put_msg_txt(msg)
     
     def put_audio_frame(self,audio_chunk): #16khz 20ms pcm
         self.asr.put_audio_frame(audio_chunk)
