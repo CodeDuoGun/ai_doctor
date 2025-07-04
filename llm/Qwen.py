@@ -1,5 +1,6 @@
 import os
 from openai import OpenAI
+from utils.log import logger
 #from transformers import AutoModelForCausalLM, AutoTokenizer
 class Qwen:
     def __init__(self, model_path="Qwen/Qwen-1_8B-Chat", api_base="https://dashscope.aliyuncs.com/compatible-mode/v1", api_key="sk-54ffdb767a6e4d4f87df5a789a75ec9f") -> None:
@@ -58,7 +59,7 @@ class Qwen:
         except:
             return "对不起，你的请求出错了，请再次尝试。\nSorry, your request has encountered an error. Please try again.\n"
 
-    def chat_stream(self, question):
+    async def chat_stream(self, question):
         response = self.client.chat.completions.create(
             model="qwen-max-2024-04-03",
             messages=[
@@ -72,6 +73,7 @@ class Qwen:
         for chunk in response:
             text = chunk.choices[0].delta.content
             content += text
+        logger.info(f"LLM resp {content}")
         return content
         # return response.choices[0].message.content  
 

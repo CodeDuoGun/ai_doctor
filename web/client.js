@@ -22,6 +22,7 @@ function negotiate() {
         });
     }).then(() => {
         var offer = pc.localDescription;
+        console.log()
         return fetch('/offer', {
             body: JSON.stringify({
                 sdp: offer.sdp,

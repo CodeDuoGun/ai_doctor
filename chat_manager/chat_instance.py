@@ -11,6 +11,8 @@ class ChatInstance:
         self.is_running = False
         self.tasks = []
         self._businesses = []
+        self.websocket = None
+        self.nefreal = None
     
     def is_valid(self):
         return self.is_running
@@ -27,19 +29,19 @@ class ChatInstance:
             # self._businesses.append(BusinessVad())
 
             from chat_manager.nlp_task import ChatNLP
-            nlp_processor = ChatNLP()
+            nlp_processor = ChatNLP(self.websocket, self.nefreal)
             self._businesses.append(nlp_processor)
             #用来处理打断，需要停止nlp
             # self.runtime_data.nlp_interrupt_handler = nlp
             from chat_manager.tts_task import ChatTTS
-            tts_processor = ChatTTS()
+            tts_processor = ChatTTS(self.websocket, self.nefreal)
             self._businesses.append(tts_processor)
     
 
             # TODO: 暂时让 ASR 在这里吧
-            from chat_manager.asr_task import ChatASR
-            asr_processor = ChatASR()
-            self._businesses.append(asr_processor)
+            # from chat_manager.asr_task import ChatASR
+            # asr_processor = ChatASR(self.websocket)
+            # self._businesses.append(asr_processor)
 
             # logger.debug(f"{self.init_data.live_id} 任务队列就绪，准备启动")
             for business in self._businesses:
@@ -47,11 +49,12 @@ class ChatInstance:
                 self.tasks.append(self.loop.create_task(business.run()))
             # if self.tasks:
             #     await asyncio.gather(*self.tasks)  # 等待所有任务完成,是否有必要这么写?
-            # if len(tasks) > 0:
-            #     self.loop.run_until_complete(asyncio.gather(*tasks))
-            logger.info(f'启动：{self.init_data.live_id} 房间启动的全部准备工作都做好了')
+            if len(tasks) > 0:
+                self.loop.run_until_complete(asyncio.gather(*tasks))
+            # await asyncio.sleep(10)
+            logger.info(f'启动： 房间启动的全部准备工作都做好了')
         except:
-            logger.error(f'{self.init_data.live_id} 启动任务队列出错 {traceback.format_exc()}')
+            logger.error(f' 启动任务队列出错 {traceback.format_exc()}')
     def start_tasks_in_main_thread(self):
         self.loop = asyncio.get_event_loop()  # 获取主线程的事件循环
         # await self.thread_function()  
@@ -65,16 +68,19 @@ class ChatInstance:
         except:
             pass
 
-    async def start_chat(self):
+    async def start_chat(self, websocket, nefreal):
         if self.is_running:
-            return
+            return "ok"
+        if not self.websocket:
+            self.websocket = websocket
+        if not self.nefreal:
+            self.nefreal = nefreal
         if self._thread is not None: # TODO要改
-            error_msg = (
-                "self._thread exist 没有调用停止直播或这重复开始直播，或者线程还没死"
-            )
+            error_msg = "self._thread exist 没有调用停止直播或这重复开始直播，或者线程还没死"
             return error_msg
-        pass
+        self.is_running = True
         self.start_tasks_in_main_thread()
+        return "ok"
 
 
     def reset(self):

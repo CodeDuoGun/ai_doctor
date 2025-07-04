@@ -35,3 +35,4 @@ openai-whisper==20240930
 loguru
 websocket
 aiohttp-cors
+dynaconf
