@@ -4,6 +4,7 @@ import numpy as np
 
 #from .utils import *
 import subprocess
+from utils.log import logger
 import os
 import time
 import cv2
@@ -103,40 +104,44 @@ def inference(render_event,batch_size,face_imgs_path,audio_feat_queue,audio_out_
                     res_frame_queue.put((None,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
                     index = index + 1
             else:
-                # print('infer=======')
-                t=time.perf_counter()
-                img_batch = []
                 for i in range(batch_size):
-                    idx = __mirror_index(length,index+i)
-                    face = face_list_cycle[idx]
-                    img_batch.append(face)
-                img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
-
-                # TODO: need new face paste back
-                img_masked = img_batch.copy()
-                img_masked[:, face.shape[0]//2:] = 0
-            
-                img_batch = np.concatenate((img_masked, img_batch), axis=3) / 255.
-                mel_batch = np.reshape(mel_batch, [len(mel_batch), mel_batch.shape[1], mel_batch.shape[2], 1])
-                
-                img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(device)
-                mel_batch = torch.FloatTensor(np.transpose(mel_batch, (0, 3, 1, 2))).to(device)
-
-                with torch.no_grad():
-                    pred = model(mel_batch, img_batch)
-                pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
-
-                counttime += (time.perf_counter() - t)
-                count += batch_size
-                #_totalframe += 1
-                if count>=100:
-                    print(f"------actual avg infer fps:{count/counttime:.4f}")
-                    count=0
-                    counttime=0
-                for i,res_frame in enumerate(pred):
-                    #self.__pushmedia(res_frame,loop,audio_track,video_track)
-                    res_frame_queue.put((res_frame,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
+                    res_frame_queue.put((None,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
                     index = index + 1
+            # else:
+            #     # print('infer=======')
+            #     t=time.perf_counter()
+            #     img_batch = []
+            #     for i in range(batch_size):
+            #         idx = __mirror_index(length,index+i)
+            #         face = face_list_cycle[idx]
+            #         img_batch.append(face)
+            #     img_batch, mel_batch = np.asarray(img_batch), np.asarray(mel_batch)
+
+            #     # TODO: need new face paste back
+            #     img_masked = img_batch.copy()
+            #     img_masked[:, face.shape[0]//2:] = 0
+            
+            #     img_batch = np.concatenate((img_masked, img_batch), axis=3) / 255.
+            #     mel_batch = np.reshape(mel_batch, [len(mel_batch), mel_batch.shape[1], mel_batch.shape[2], 1])
+                
+            #     img_batch = torch.FloatTensor(np.transpose(img_batch, (0, 3, 1, 2))).to(device)
+            #     mel_batch = torch.FloatTensor(np.transpose(mel_batch, (0, 3, 1, 2))).to(device)
+
+            #     with torch.no_grad():
+            #         pred = model(mel_batch, img_batch)
+            #     pred = pred.cpu().numpy().transpose(0, 2, 3, 1) * 255.
+
+            #     counttime += (time.perf_counter() - t)
+            #     count += batch_size
+            #     #_totalframe += 1
+            #     if count>=100:
+            #         print(f"------actual avg infer fps:{count/counttime:.4f}")
+            #         count=0
+            #         counttime=0
+            #     for i,res_frame in enumerate(pred):
+            #         #self.__pushmedia(res_frame,loop,audio_track,video_track)
+            #         res_frame_queue.put((res_frame,__mirror_index(length,index),audio_frames[i*2:i*2+2]))
+            #         index = index + 1
                 #print('total batch time:',time.perf_counter()-starttime)            
         else:
             time.sleep(1)
@@ -163,15 +168,6 @@ class LipReal:
 
         self.asr = LipASR(self.fps, self.batch_size)
         self.asr.warm_up()
-        tts_type = "customtts"
-        if tts_type == "edgetts":
-            self.tts = EdgeTTS(self.fps,self)
-        elif tts_type == "gpt-sovits":
-            self.tts = VoitsTTS(self.fps,self)
-        elif tts_type == "xtts":
-            self.tts = XTTS(self.fps,self)
-        elif tts_type == "customtts":
-            self.tts = CustomTTS(self.fps, self)
         #self.__warm_up()
         
         self.render_event = mp.Event()
@@ -196,14 +192,16 @@ class LipReal:
         self.frame_list_cycle = read_imgs(input_img_list)
         
     
-    def put_msg_txt(self,msg):
-        self.tts.put_msg_txt(msg)
+    # def put_msg_txt(self,msg):
+    #     self.tts.put_msg_txt(msg)
     
     def put_audio_frame(self,audio_chunk): #16khz 20ms pcm
+        # logger.info(f"put audio to play asr ,size {len(audio_chunk)}")
         self.asr.put_audio_frame(audio_chunk)
 
+    # TODO: 暂时无打断逻辑，不调用
     def pause_talk(self):
-        self.tts.pause_talk()
+        # self.tts.pause_talk()
         self.asr.pause_talk()
       
 
@@ -214,19 +212,23 @@ class LipReal:
                 res_frame,idx,audio_frames = self.res_frame_queue.get(block=True, timeout=1)
             except queue.Empty:
                 continue
-            if audio_frames[0][1]==1 and audio_frames[1][1]==1: #全为静音数据，只需要取fullimg
-                combine_frame = self.frame_list_cycle[idx]
-            else:
-                bbox = self.coord_list_cycle[idx]
-                combine_frame = copy.deepcopy(self.frame_list_cycle[idx])
-                y1, y2, x1, x2 = bbox
-                try:
-                    res_frame = cv2.resize(res_frame.astype(np.uint8),(x2-x1,y2-y1))
-                except:
-                    continue
-                #combine_frame = get_image(ori_frame,res_frame,bbox)
-                #t=time.perf_counter()
-                combine_frame[y1:y2, x1:x2] = res_frame
+            combine_frame = self.frame_list_cycle[idx]
+            # TODO: 这里暂时注释，因为这个电脑垃圾，性能起不来
+            # if audio_frames[0][1]==1 and audio_frames[1][1]==1: #全为静音数据，只需要取fullimg
+            #     logger.info(f"全是静音数据")
+            #     combine_frame = self.frame_list_cycle[idx]
+            # else:
+            #     logger.info(f"换脸了")
+            #     bbox = self.coord_list_cycle[idx]
+            #     combine_frame = copy.deepcopy(self.frame_list_cycle[idx])
+            #     y1, y2, x1, x2 = bbox
+            #     try:
+            #         res_frame = cv2.resize(res_frame.astype(np.uint8),(x2-x1,y2-y1))
+            #     except:
+            #         continue
+            #     #combine_frame = get_image(ori_frame,res_frame,bbox)
+            #     #t=time.perf_counter()
+            #     combine_frame[y1:y2, x1:x2] = res_frame
                 #print('blending time:',time.perf_counter()-t)
 
             image = combine_frame #(outputs['image'] * 255).astype(np.uint8)
@@ -234,6 +236,7 @@ class LipReal:
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop) 
 
             for audio_frame in audio_frames:
+                # logger.info(f"putting audio to audio track")
                 frame,type = audio_frame
                 frame = (frame * 32767).astype(np.int16)
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
@@ -248,7 +251,7 @@ class LipReal:
         #if self.opt.asr:
         #     self.asr.warm_up()
 
-        self.tts.render(quit_event)
+        # self.tts.render(quit_event)
         process_thread = Thread(target=self.process_frames, args=(quit_event,loop,audio_track,video_track))
         process_thread.start()
 

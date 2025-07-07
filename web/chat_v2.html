@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>语音识别 + 视频播放</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: Arial; padding: 1rem; }
+    .chatbot-box {
+      height: 150px; overflow-y: auto; background: #f0f0f0;
+      border: 1px solid #ccc; padding: 0.5rem; border-radius: 5px;
+    }
+    textarea { width: 100%; height: 60px; margin-top: 10px; }
+    video, audio { width: 100%; margin-top: 10px; }
+  </style>
+
+  <!-- 必要的第三方库 -->
+  <script src="recorder-core.js"></script>
+  <script src="pcm.js"></script>
+  <script src="wav.js"></script>
+</head>
+
+<body>
+  <h1>医疗语音识别 + 视频播放</h1>
+
+  <div class="chatbot-box" id="chatbot">
+    <div><strong>AI:</strong> 欢迎使用语音识别系统</div>
+  </div>
+
+  <textarea id="chat-input" placeholder="请输入..."></textarea>
+  <div id="info_div">请点击开始</div>
+  <button id="ws-connect">连接</button>
+  <button id="start-asr">开始识别</button>
+  <button id="stop-asr">停止识别</button>
+
+	<audio id="audio_record" type="audio/wav" controls style="margin-top: 12px; width: 100%;"></audio>
+  <video id="video" autoplay playsinline muted></video>
+  <audio id="audio" autoplay></audio>
+
+  <!-- 自定义逻辑 -->
+  <script src="chatbot-ui.js"></script>
+  <script src="webrtc-offer.js"></script>
+  <script src="asr-client.js"></script>
+</body>
+</html>
