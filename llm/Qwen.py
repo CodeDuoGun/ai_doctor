@@ -63,7 +63,7 @@ class Qwen:
         response = self.client.chat.completions.create(
             model="qwen-max-2024-04-03",
             messages=[
-                {"role": "system", "content": "你是一个小助手"},
+                {"role": "system", "content": "你是一个小助手, 所有回答禁止超过100个字"},
                 {"role": "user", "content": question}
             ],
             stream=True,

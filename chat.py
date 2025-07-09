@@ -47,6 +47,7 @@ async def echo(websocket):
             # cache_path = "data/cache/audio/media.wav"
             # pcm_to_wav(message, cache_path)
             asr_result = await request_asr(message)
+            asr_result = "北京天气"
             await websocket.send(json.dumps({"asr": asr_result}, ensure_ascii=False))
             await chat_instance.runtime_data.asr_msg_queue.put(asr_result)
 
