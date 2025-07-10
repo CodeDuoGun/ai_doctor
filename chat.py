@@ -11,10 +11,8 @@ import aiohttp_cors
 import json
 from aiortc import RTCPeerConnection, RTCSessionDescription
 from human_player import HumanPlayer
-from asr.FunASR import AliFunASR
 from utils.tool import pcm_to_wav
 global nerfreal
-asr = AliFunASR()
 chat_instance = ChatInstance()
 ws_map = {}
 
@@ -22,13 +20,6 @@ def health_check(connection, request):
     if request.path == "/health":
         return connection.respond(HTTPStatus.OK, "OK\n")
 
-async def request_asr(audio_bytes):
-    # cache
-    # cache_path = "data/cache/audio/audio.wav"
-    # pcm_to_wav(audio_bytes, cache_path)
-    # with open(cache_path, "wb") as fp:
-    #     fp.write(audio_bytes)
-    return asr.recognize(audio_bytes)
 
 async def echo(websocket):
     global chat_instance
@@ -46,10 +37,9 @@ async def echo(websocket):
             print(len(message), message[:100])
             # cache_path = "data/cache/audio/media.wav"
             # pcm_to_wav(message, cache_path)
-            asr_result = await request_asr(message)
-            asr_result = "北京天气"
-            await websocket.send(json.dumps({"asr": asr_result}, ensure_ascii=False))
-            await chat_instance.runtime_data.asr_msg_queue.put(asr_result)
+            await chat_instance.runtime_data.queue_vad.put(message)
+            # asr_result = "北京天气"
+            # await websocket.send(json.dumps({"asr": asr_result}, ensure_ascii=False))
 
 
 async def websocket_server():
