@@ -6,12 +6,14 @@ import os
 from utils.log import logger
 import base64
 from utils.tool import pcm_to_wav
+import sys
 import traceback
 import queue
 import soundfile as sf
 from queue import Queue
 from io import BytesIO
-from dashscope.audio.tts_v2 import *
+# from dashscope.audio.tts_v2 import *
+from dashscope.audio.tts import SpeechSynthesizer
 from default_config import config
 dashscope.api_key = config.DASH_API_KEY
 from enum import Enum
@@ -35,7 +37,7 @@ class CustomTTS():
         
     def txt_to_audio(self,msg): 
         self.stream_tts(
-            self.gen_cosyvoice(msg)
+            self.gen_sambert_tts(msg)
         )
     
     def stream_tts(self, audio_stream):
@@ -62,6 +64,8 @@ class CustomTTS():
             yield owav_bytes
     
     def gen_cosyvoice(self,text):
+        text = "输入的是数字序列“1234”。如果您有任何问题或需要关于这个数字序列的信息，请详细说明，我会很乐意为您提供帮助。如果没有特定问题，这就是一个简单的四位数，其各位数值依次为1、2、3、4。"
+        print(f"ready to tts")
         # 模型
         start = time.perf_counter()
         model = "cosyvoice-v2"
@@ -92,3 +96,25 @@ class CustomTTS():
         #     id += 1
         #     if chunk and self.state==State.RUNNING:
         #         yield chunk
+    
+    def gen_sambert_tts(self, text):
+        t0 = time.perf_counter()
+        result = SpeechSynthesizer.call(model='sambert-zhichu-v1',
+                                text=text,
+                                sample_rate=16000,
+                                format='wav')
+        if result.get_audio_data() is not None:
+            audio_np = np.frombuffer(result.get_audio_data(), dtype=np.int16)
+            # with open('output.wav', 'wb') as f:
+            #     f.write(result.get_audio_data())
+            print('SUCCESS: get audio data: %dbytes in output.wav' %
+                (sys.getsizeof(result.get_audio_data())))
+            print(f"cost time{time.perf_counter() - t0}")
+            return audio_np
+        else:
+            print('ERROR: response is %s' % (result.get_response()))
+        return []
+
+
+# tts = CustomTTS(None)
+# tts.txt_to_audio("nihao")

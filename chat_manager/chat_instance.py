@@ -39,9 +39,9 @@ class ChatInstance:
     
 
             # TODO: 暂时让 ASR 在这里吧
-            # from chat_manager.asr_task import ChatASR
-            # asr_processor = ChatASR(self.websocket)
-            # self._businesses.append(asr_processor)
+            from chat_manager.asr_task import ChatASR
+            asr_processor = ChatASR(self.websocket, self.nefreal)
+            self._businesses.append(asr_processor)
 
             # logger.debug(f"{self.init_data.live_id} 任务队列就绪，准备启动")
             for business in self._businesses:
@@ -88,7 +88,7 @@ class ChatInstance:
         self.is_running = False
         self._businesses.clear()
         # 清理队列
-        self.runtime_data.shutup()
+        # self.runtime_data.shutup()
         # self.runtime_data = ChatRuntimeData()
 
     async def stop_chat(self):
@@ -97,6 +97,7 @@ class ChatInstance:
             if self._thread is not None:
                 self._thread.join(timeout=20)
 
+            self.close_async_queue(self.runtime_data.queue_vad)
             self.close_async_queue(self.runtime_data.asr_msg_queue)
             self.close_async_queue(self.runtime_data.nlp_answer_queue)
             self.close_async_queue(self.runtime_data.queue_25d_audio)
