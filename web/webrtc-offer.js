@@ -12,27 +12,6 @@ function startWebRTC() {
       document.getElementById('video').srcObject = event.streams[0];
     } else if (event.track.kind === 'audio') {
       document.getElementById('audio').srcObject = event.streams[0];
-      // // 创建 MediaRecorder 实例
-      // mediaRecorder = new MediaRecorder(event.streams[0]);
-      // recordedChunks = [];
-
-      // mediaRecorder.ondataavailable = (event) => {
-      //   if (event.data.size > 0) {
-      //     recordedChunks.push(event.data);
-      //   }
-      // };
-
-      // mediaRecorder.onstop = () => {
-      //   const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
-      //   const audioURL = URL.createObjectURL(audioBlob);
-
-      //   const audioPlayer = document.getElementById('audio_record');
-      //   audioPlayer.src = audioURL;
-      //   audioPlayer.load();
-      // };
-
-      // mediaRecorder.start();
-      // console.log("🎙️ 已开始录音");
       }
   };
 
