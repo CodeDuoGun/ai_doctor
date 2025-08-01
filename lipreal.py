@@ -206,7 +206,6 @@ class LipReal:
       
 
     def process_frames(self,quit_event,loop=None,audio_track=None,video_track=None):
-        
         while not quit_event.is_set():
             try:
                 res_frame,idx,audio_frames = self.res_frame_queue.get(block=True, timeout=1)
@@ -234,16 +233,17 @@ class LipReal:
             image = combine_frame #(outputs['image'] * 255).astype(np.uint8)
             new_frame = VideoFrame.from_ndarray(image, format="bgr24")
             asyncio.run_coroutine_threadsafe(video_track._queue.put(new_frame), loop) 
-
             for audio_frame in audio_frames:
                 # logger.info(f"putting audio to audio track")
-                frame,type = audio_frame
+                frame,_type = audio_frame
+                if _type==0:
+                    print(frame.dtype, frame.shape[0], "说话", _type==0)
                 frame = (frame * 32767).astype(np.int16)
                 new_frame = AudioFrame(format='s16', layout='mono', samples=frame.shape[0])
                 new_frame.planes[0].update(frame.tobytes())
                 new_frame.sample_rate=16000
-                # if audio_track._queue.qsize()>10:
-                #     time.sleep(0.1)
+                if audio_track._queue.qsize()>10:
+                    time.sleep(0.1)
                 asyncio.run_coroutine_threadsafe(audio_track._queue.put(new_frame), loop)
         print('musereal process_frames thread stop') 
             

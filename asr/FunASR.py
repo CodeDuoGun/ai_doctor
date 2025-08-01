@@ -7,7 +7,7 @@ class AliFunASR():
         self.model_dir = "iic/SenseVoiceSmall"
         self.device = "cpu"
 
-    def recognize(self, audio_bytes: Any):
+    async def recognize(self, audio_bytes: Any):
         model = AutoModel(
             model=self.model_dir,
             vad_model="fsmn-vad",

@@ -12,6 +12,7 @@ from utils import audio
 class LipASR(BaseASR):
 
     def run_step(self):
+        # 获取音频和mel的地方
         ############################################## extract audio feature ##############################################
         # get a frame of audio
         for _ in range(self.batch_size*2):
