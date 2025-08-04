@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>知识库上传与更新</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    select, input, button { margin: 5px; padding: 5px; }
+    select[multiple] { height: 120px; width: 250px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f0f0f0; }
+    .actions { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>知识库上传与更新</h2>
+
+  <!-- 多选医院 -->
+  <label for="hospital-select">选择医院（可多选）：</label><br />
+  <select id="hospital-select" multiple>
+    <option>四惠中医医院</option>
+    <option>四惠西区医院</option>
+    <option>四惠南区中医门诊部</option>
+    <option>互联网医院</option>
+    <option>杭州四惠医院</option>
+    <option>上海圣保堂中医门诊部</option>
+    <option>南宁桂派中医门诊部</option>
+  </select>
+
+  <!-- 知识库类型 -->
+  <br />
+  <label for="type-select">知识库类型：</label>
+  <select id="type-select">
+    <option value="qa">QA库</option>
+    <option value="doctor">医生库</option>
+    <option value="general">通用知识库</option>
+  </select>
+
+  <!-- 上传文件 -->
+  <br />
+  <label>上传知识库文件（Excel 或 CSV）：</label>
+  <input type="file" id="file-input" accept=".xlsx, .xls, .csv" />
+
+  <!-- 表格展示 -->
+  <table id="knowledge-table">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="select-all" /></th>
+        <th>ID</th>
+        <th>问题</th>
+        <th>答案</th>
+      </tr>
+    </thead>
+    <tbody id="table-body">
+      <!-- 动态插入数据 -->
+    </tbody>
+  </table>
+
+  <!-- 操作按钮 -->
+  <div class="actions">
+    <button onclick="addRow()">添加</button>
+    <button onclick="deleteSelected()">删除</button>
+    <button onclick="updateBackend()">更新到后台</button>
+  </div>
+
+  <script>
+    const tableBody = document.getElementById('table-body');
+    const selectAllCheckbox = document.getElementById('select-all');
+    const fileInput = document.getElementById('file-input');
+    let rowId = 1;
+
+    function addRow(question = '', answer = '') {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="checkbox" class="row-check" /></td>
+        <td>${rowId++}</td>
+        <td><input type="text" value="${question}" /></td>
+        <td><input type="text" value="${answer}" /></td>
+      `;
+      tableBody.appendChild(tr);
+    }
+
+    function deleteSelected() {
+      document.querySelectorAll('.row-check:checked').forEach(cb => {
+        cb.closest('tr').remove();
+      });
+    }
+
+    selectAllCheckbox.addEventListener('change', () => {
+      document.querySelectorAll('.row-check').forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+      });
+    });
+
+    function updateBackend() {
+      const hospitalSelect = document.getElementById('hospital-select');
+      const selectedHospitals = Array.from(hospitalSelect.selectedOptions).map(opt => opt.value);
+
+      const type = document.getElementById('type-select').value;
+      const rows = document.querySelectorAll('#table-body tr');
+      const data = [];
+
+      rows.forEach(row => {
+        const id = row.children[1].textContent;
+        const question = row.children[2].querySelector('input').value;
+        const answer = row.children[3].querySelector('input').value;
+        if (question && answer) {
+          data.push({ id, question, answer });
+        }
+      });
+
+      if (selectedHospitals.length === 0) {
+        alert("请至少选择一个医院");
+        return;
+      }
+
+      fetch('/api/knowledge/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hospitals: selectedHospitals,
+          type: type,
+          data: data
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
+        alert('更新成功！');
+        console.log(result);
+      })
+      .catch(err => {
+        alert('更新失败');
+        console.error(err);
+      });
+    }
+
+    // 解析 Excel/CSV 文件
+    fileInput.addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = e.target.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        // 清空旧数据
+        tableBody.innerHTML = '';
+        rowId = 1;
+
+        jsonData.forEach((row, index) => {
+          if (index === 0) return; // 跳过表头
+          const question = row[0] || '';
+          const answer = row[1] || '';
+          if (question && answer) {
+            addRow(question, answer);
+          }
+        });
+      };
+      reader.readAsBinaryString(file);
+    });
+
+    // 初始空表
+    addRow();
+  </script>
+</body>
+</html>
+
+

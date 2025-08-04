@@ -1,0 +1,45 @@
+default:
+  LOG_LEVEL: "info"
+  DEEPSEEK_API_URL: "https://api.deepseek.com/v1"
+  DEEPSEEK_API_KEY: "sk-a17c861e74ce49c6878efcae740baeed"
+  ARK_API_KEY: "f43df693-455a-4e3e-b987-d76d7b57f4c3"
+  ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3"
+  DASHSCOPE_API_KEY: sk-54ffdb767a6e4d4f87df5a789a75ec9f
+  DASHSCOPE_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  REDIS_HOST: 118.190.155.195
+  REDIS_PORT: 6379
+  REDIS_DB: 15
+  REDIS_AUTH: "fwo42fql"
+  score_threshold: 1.75
+  rerank: false
+  embedding_model: "doubao"
+  LOG_REDIS_HOST: "logredis.redis.zhangbei.rds.aliyuncs.com"
+  LOG_REDIS_PORT: 6379
+  LOG_REDIS_DB: 4
+  LOG_REDIS_AUTH: "Xlys!@#456qwe"
+  min_connections: 1  # 最小连接数
+  max_connections: 10  # 最大连接数
+  socket_connect_timeout: 15.0  # 连接超时时间
+  socket_timeout: 5.0  # 等待超时时间
+  max_idle_time: 60  # 最大空闲时间
+  env_version: "alpha"
+  # ES
+  ES_HOST: es-cn-8qq47vdfe0005swll.elasticsearch.aliyuncs.com
+  ES_PORT: 9200
+  ES_USER: elastic
+  ES_AUTH: fh6u65tPxSa@fbcv1pM
+  # search doctor
+  DOCTOR_SEARCH_URL: "https://api-backend.sihuiyiliao.com/doctor_service/api/doctor/coze/doctors"
+  IS_LOCAL: false
+  chat_history_num: 8
+  CHUNK_SIZE: 2
+  special_punctuation: '▢|▶|❗|📞'
+  QA_SIZE: 30
+  QA_ANSWER_SIZE: 10
+  DEFAULT_DOCTOR_IDS: [42,769,527,425,1111,1118]
+  USE_BGE_CODE: false
+  USE_RANK: true
+
+
+
+

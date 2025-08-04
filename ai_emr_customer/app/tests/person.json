@@ -1,0 +1,329 @@
+{
+    "province_name": "河南省",
+    "city_name": "周口市",
+    "area_name": "扶沟县",
+    "province_id": 410000,
+    "city_id": 411600,
+    "area_id": 411621,
+    "patient_case_id": 427455,
+    "is_patient_case": 1,
+    "register_order_id": "604771",
+    "patient_id": 1078,
+    "doctor_id": 51,
+    "inquiry_status": 8,
+    "uid": 3463,
+    "sex": 1,
+    "username": "吴红超",
+    "age": 56,
+    "telphone": "17395812718",
+    "allergydetial": "",
+    "casedetial": "",
+    "familydetial": "",
+    "is_special": 0,
+    "is_allergy": 2,
+    "is_case": 2,
+    "is_family": 2,
+    "specialdetial": "",
+    "weight": 49,
+    "height": 165,
+    "hxgroupid": "137238706978817",
+    "remark": "",
+    "description": "胰腺导管癌",
+    "ctime": "2025-06-02 08:59:11",
+    "is_send_inquiry": 1,
+    "is_write_img": 1,
+    "specialdetial_list": [
+        "备孕期",
+        "妊娠期",
+        "哺乳期",
+        "经期"
+    ],
+    "address": "河南省周口市扶沟县",
+    "is_personal_history": 2,
+    "personal_history": "",
+    "marriage_history": 1,
+    "child_history": 1,
+    "present_history": "胰十二支肠术后",
+    "birth_detail": "两女",
+    "admin_face_describe": "",
+    "tongue": [
+        {
+            "img": [
+                "https://images.sihuiyiliao.com/xlys/patient/tongue/2025-06-02/58074ac8-f856-1d42-56ab-eb362d35bee6.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/tongue/2025-06-02/9e440e31-7662-1c96-2c8b-87675d0ebc06.jpg"
+            ],
+            "time": "2025-06-02 09:03:03",
+            "num": 2
+        }
+    ],
+    "tongue_img": [
+        "https://images.sihuiyiliao.com/xlys/patient/tongue/2025-06-02/58074ac8-f856-1d42-56ab-eb362d35bee6.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/tongue/2025-06-02/9e440e31-7662-1c96-2c8b-87675d0ebc06.jpg"
+    ],
+    "otherimg": [
+        {
+            "img": [
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/a92b6eae-a833-b0aa-6b87-30f54b17b9ff.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/cb20a934-c47a-fecb-2d74-31a954c3deb3.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/b228ccb6-7427-c22f-4f95-260c767320d4.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/c14fea31-935c-081b-9133-38b48e2ed271.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/f999c8b0-72aa-72b4-f82a-cd4620524beb.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/8261dfd1-12b1-2590-9a29-05bcaab19a4d.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/c6892c76-48d4-4dc6-8c50-57af3a6fc8ca.jpg",
+                "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/733655a9-05a9-f5f6-5d0e-5565b7489167.jpg"
+            ],
+            "time": "2025-06-02 09:03:03",
+            "num": 8
+        }
+    ],
+    "other_img": [
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/a92b6eae-a833-b0aa-6b87-30f54b17b9ff.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/cb20a934-c47a-fecb-2d74-31a954c3deb3.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/b228ccb6-7427-c22f-4f95-260c767320d4.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/c14fea31-935c-081b-9133-38b48e2ed271.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/f999c8b0-72aa-72b4-f82a-cd4620524beb.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/8261dfd1-12b1-2590-9a29-05bcaab19a4d.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/c6892c76-48d4-4dc6-8c50-57af3a6fc8ca.jpg",
+        "https://images.sihuiyiliao.com/xlys/patient/case/2025-06-02/733655a9-05a9-f5f6-5d0e-5565b7489167.jpg"
+    ],
+    "is_emr_confirm": 2,
+    "is_complete_question": 1,
+    "is_register_order_inquiry": 1,
+    "register_order_inquiry_id": 378782,
+    "inquiry_id": 23,
+    "question_answer": {
+        "inquiry_id": 23,
+        "inquiry_name": "刘教授问诊单",
+        "inquiry_describe": "肿瘤患者使用",
+        "data": [
+            {
+                "id": 307,
+                "name": "如果您是第一次咨询我的新患者，您需要了解，此次问诊结束后开具的处方，需在当地医生监督管理下使用，处方供当地医生参考。",
+                "describe": "",
+                "type": 1,
+                "option_id_data": [
+                    "1088"
+                ],
+                "question_option_data": [
+                    {
+                        "id": 1087,
+                        "question_id": 307,
+                        "name": "我是新患者，我已知晓处方需在当地医生监督管理下使用"
+                    },
+                    {
+                        "id": 1088,
+                        "question_id": 307,
+                        "name": "我是复诊患者"
+                    }
+                ]
+            },
+            {
+                "id": 665,
+                "name": "本次问诊是否需要开具中药？如果是，需要开多少天中药？",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "30剂"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 667,
+                "name": "疾病名称或者诊断名称",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "胰腺导管癌（胰十二支肠术后）"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 690,
+                "name": "是否做过手术？如果是，写出手术日期。",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "2020年10月做胰十二支肠切除手术"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 694,
+                "name": "是否有病理报告（手术、穿刺或者其他方式）及日期？如果有，请写出。",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "己上传"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 686,
+                "name": "是否有肿瘤转移？如果有，写出转移部位及转移日期",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 669,
+                "name": "是否有黄疸？如果有，黄疸多少天后行ERCP或PTCD，写出具体日期",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 670,
+                "name": "是否有胸水、腹水？如果有，写出出现胸、腹水的具体日期",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 671,
+                "name": "是否做过化疗？如果有，1、静脉多少次及末次日期；2、口服化疗药名称，吃了多久，最后一次是几月几号服用；3、介入，介入部位、次数及末次时间。",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "2021年做6期静脉化疗，一年的口服替吉奥化疗"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 676,
+                "name": "是否做过放疗？如果是，写出放疗的部位及方式（X光/I125粒子置入/质子重离子/γ刀/射波刀）以及放疗次数及起始日期",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 677,
+                "name": "是否做过海扶？如果是，写出海扶刀部位、海扶刀治疗次数及末次时间",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 678,
+                "name": "是否做过消融？如果是，写出消融治疗部位、方式（微波、冷冻等）治疗次数及末次时间",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 681,
+                "name": "是否吃过或者打过靶向药？如果是，写出次数及服用时间",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 693,
+                "name": "是否做过免疫治疗，比如PD1等？如果是，写出治疗次数，剂量及治疗时间",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 685,
+                "name": "最近一次CA199是多少，几月几号检查的？其他肿瘤标志物有哪些不正常，请列出。",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "9，27"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 688,
+                "name": "近期是否有大便便秘或者干燥，什么颜色，几天一次大便？",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "大便正常"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 689,
+                "name": "近期是否有腹泻？如果有，一天几次？",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 687,
+                "name": "是否有其他症状需要描述？如果有，请列出。",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "无"
+                ],
+                "question_option_data": []
+            },
+            {
+                "id": 675,
+                "name": "如有最近肝功能、血常规和肿瘤标志物检查报告，请上传",
+                "describe": null,
+                "type": 3,
+                "option_id_data": [
+                    "己上传"
+                ],
+                "question_option_data": []
+            }
+        ]
+    },
+    "appointment_department": "肿瘤科",
+    "appointment_day": "0",
+    "appointment_start_time": "",
+    "appointment_end_time": "",
+    "inquiry_method": "图文问诊",
+    "appointment_doctor": "刘鲁明",
+    "order_info": {
+        "id": 650791,
+        "register_order_id": 604771,
+        "patient_name": "吴红超",
+        "patient_sex": 1,
+        "patient_idcard": "412721196902280650",
+        "patient_mobile": "17395812718",
+        "patient_age": "56",
+        "doctor_name": "刘鲁明",
+        "description": "",
+        "mcn": "上海分公司",
+        "crm": "",
+        "doctor_mobile": "18121299149",
+        "team_name": "",
+        "day": "0",
+        "start_time": "",
+        "end_time": "",
+        "created_at": "2025-06-02 08:59:11",
+        "updated_at": "2025-06-02 08:59:11",
+        "deleted_at": null
+    }
+}

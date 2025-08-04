@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI 预问诊助手</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+    #chat-box {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      max-width: 600px;
+      margin: auto;
+      height: 500px;
+      overflow-y: auto;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    .msg { margin: 10px 0; }
+    .user { text-align: right; color: blue; }
+    .ai { text-align: left; color: green; }
+    #input-area {
+      max-width: 600px;
+      margin: 20px auto 0;
+      display: flex;
+    }
+    #text-input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #send-btn {
+      padding: 10px 20px;
+      margin-left: 10px;
+      font-size: 16px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #send-btn:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">AI 医疗预问诊助手</h2>
+
+  <div id="chat-box"></div>
+
+  <div id="input-area">
+    <input id="text-input" type="text" placeholder="请输入症状或描述…" />
+    <button id="send-btn">发送</button>
+    <button id="end-btn">结束问诊</button>
+  </div>
+
+  <!-- 图片上传按钮（默认隐藏） -->
+  <div style="text-align: center; margin-top: 10px;">
+    <input type="file" id="file-input" accept="image/*" multiple />
+    <button id="upload-btn">上传图片</button>
+  </div>
+
+  <script>
+    const ws = new WebSocket("ws://localhost:8765");
+    ws.binaryType = "arraybuffer";  // 关键：接受音频流
+
+    const chatBox = document.getElementById("chat-box");
+    const textInput = document.getElementById("text-input");
+    const sendBtn = document.getElementById("send-btn");
+    const uploadBtn = document.getElementById("upload-btn");
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let pcmQueue = [];
+    let isPlaying = false;
+
+    function appendMessage(text, sender) {
+      const msg = document.createElement("div");
+      msg.classList.add("msg", sender);
+      msg.innerText = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    ws.onopen = async () => {
+      appendMessage("🟢 已连接到服务器", "ai");
+      try {
+        const res = await fetch("http://localhost:8080/start", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ uid: "text" })
+        });
+        if (res.ok) {
+          appendMessage("✅ 已通知后端开始对话", "ai");
+        } else {
+          appendMessage("⚠️ 后端 start_chat 调用失败", "ai");
+        }
+      } catch (err) {
+        appendMessage("❌ 无法调用 start_chat 接口: " + err, "ai");
+      }
+    };
+
+    ws.onmessage = (event) => {
+      if (event.data instanceof ArrayBuffer) {
+        pcmQueue.push(new Uint8Array(event.data));
+        if (!isPlaying) {
+          playNextChunk();
+        }
+      } else {
+        try {
+          const json = JSON.parse(event.data);
+          if (json.text) {
+
+          // 🔥 检查是否要求上传图片
+          if (json.text == "upload_check_img") {
+            uploadArea.style.display = "block";
+            appendMessage("📷 需要您上传一张图片，请选择文件", "ai");
+          }
+          appendMessage("AI：" + json.text, "ai"); 
+
+          }
+        } catch {
+          appendMessage("AI：" + event.data, "ai");
+        }
+      }
+    };
+
+    uploadBtn.onclick = async () => {
+      const files = fileInput.files;
+      if (!files || files.length === 0) {
+        alert("请先选择图片文件");
+        return;
+      }
+
+      const base64List = [];
+
+      for (let file of files) {
+        try {
+          const base64 = await readFileAsBase64(file);
+          base64List.push(base64);
+        } catch (err) {
+          console.error("图片读取失败", err);
+          appendMessage("❌ 图片读取失败: " + file.name, "ai");
+          return;
+        }
+      }
+
+      // ⚠️ 通过 WebSocket 发送 base64 数据
+      ws.send(JSON.stringify({
+        check_img: base64List
+      }));
+
+      appendMessage("✅ 图片已发送至服务器", "ai");
+      uploadArea.style.display = "none";
+    };
+
+    // 将文件读取为 base64 的工具函数
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // 自动附带 MIME 类型前缀
+          const mime = file.type || "image/jpeg";
+          resolve(`data:${mime};base64,` + reader.result.split(',').pop());
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    sendBtn.onclick = () => {
+      const text = textInput.value.trim();
+      if (text !== "") {
+        ws.send(JSON.stringify({ text }));
+        appendMessage("我：" + text, "user");
+        textInput.value = "";
+      }
+    };
+
+    textInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        sendBtn.click();
+      }
+    });
+
+    function playNextChunk() {
+      if (pcmQueue.length === 0) {
+        isPlaying = false;
+        return;
+      }
+
+      isPlaying = true;
+      const chunk = pcmQueue.shift();
+
+      const float32 = convertPCM16ToFloat32(chunk);
+      const audioBuffer = audioCtx.createBuffer(1, float32.length, 16000);
+      audioBuffer.copyToChannel(float32, 0);
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioCtx.destination);
+      source.onended = () => playNextChunk();
+      source.start();
+    }
+
+    function convertPCM16ToFloat32(pcmData) {
+      const data = new DataView(pcmData.buffer);
+      const float32 = new Float32Array(pcmData.byteLength / 2);
+      for (let i = 0; i < float32.length; i++) {
+        const int16 = data.getInt16(i * 2, true); // 小端
+        float32[i] = int16 / 32768;
+      }
+      return float32;
+    }
+  </script>
+</body>
+</html>
+
+
