@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "病情分析表单",
+    "type": "object",
+    "properties": {
+      "病情分析": {
+        "type": "object",
+        "properties": {
+          "问诊单": {
+            "type": "object",
+            "properties": {
+              "基础信息": {
+                "type": "string"
+              },
+              "检查资料": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "舌照面照": {
+                "type": "object",
+                "properties": {
+                  "舌照": {
+                    "type": "string"
+                  },
+                  "面照": {
+                    "type": "string"
+                  }
+                },
+                "required": ["舌照", "面照"]
+              }
+            },
+            "required": ["基础信息", "检查资料", "舌照面照"]
+          },
+          "问诊单问题": {
+            "type": "string"
+          }
+        },
+        "required": ["问诊单", "问诊单问题"]
+      },
+      "撰写主诉": {
+        "type": "string"
+      },
+      "初步诊断": {
+        "type": "object",
+        "properties": {
+          "中医诊断": {
+            "type": "string"
+          },
+          "中医证型": {
+            "type": "string"
+          },
+          "西医诊断": {
+            "type": "string"
+          },
+          "辩证要点": {
+            "type": "string"
+          }
+        },
+        "required": ["中医诊断", "中医证型", "西医诊断", "辩证要点"]
+      },
+      "治疗方案": {
+        "type": "string"
+      }
+    },
+    "required": ["病情分析", "撰写主诉", "初步诊断", "治疗方案"]
+  }
+  

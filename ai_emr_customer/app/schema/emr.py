@@ -1,0 +1,2 @@
+class EmrRequestSchema:
+    id : int
