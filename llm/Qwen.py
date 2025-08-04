@@ -35,16 +35,21 @@ class Qwen:
 
         return model, tokenizer
 
-    def chat(self, question):
+    def chat(self, question, messages=[]):
+        if messages:
+            messages
+        else:
+            messages=[
+                {"role": "system", "content": "你是一个小助手, 所有回答禁止超过100个字"},
+                {"role": "user", "content": question}
+            ]
         # 优先调用qwen openapi的方式
         if not self.local:
             # 不使用流式回复的请求
+            
             response = self.client.chat.completions.create(
                 model="qwen-max-2024-04-03",
-                messages=[
-                    {"role": "system", "content": "你是一个小助手"},
-                    {"role": "user", "content": question}
-                ],
+                messages=messages,
                 stream=False,
                 stop=[]
             )
@@ -59,13 +64,17 @@ class Qwen:
         except:
             return "对不起，你的请求出错了，请再次尝试。\nSorry, your request has encountered an error. Please try again.\n"
 
-    async def chat_stream(self, question):
-        response = self.client.chat.completions.create(
-            model="qwen-max-2024-04-03",
+    async def chat_stream(self, question, messages=[]):
+        if messages:
+            messages
+        else:
             messages=[
                 {"role": "system", "content": "你是一个小助手, 所有回答禁止超过100个字"},
                 {"role": "user", "content": question}
-            ],
+            ]
+        response = self.client.chat.completions.create(
+            model="qwen-max-2024-04-03",
+            messages=messages,
             stream=True,
             stop=[]
         )
