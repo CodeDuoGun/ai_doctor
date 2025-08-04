@@ -4,14 +4,15 @@ import subprocess
 import os
 import whisper
 
-model = whisper.load_model("turbo")
 
 
-def main():
+def audio_explain(model):
     # 获取音频，特征
-    audio = extract_audio(file_path="app/data/report/uuid001/297_1749534339.mp4")
+    # audio_path = "app/data/audio/程良斌.wav"
+    audio_path = "app/data/audio/xlys_hx1754126556959.mp3"
+    audio = extract_audio(audio_path)
     # 处理音频，转文本
-    custom_asr(audio, use_funasr=True)
+    custom_asr(audio, use_funasr = model is None, model=model)
 
 def process_audio():
     pass
@@ -50,9 +51,10 @@ def extract_audio(file_path: str):
 
 
 def gen_advice(text: str, model=None):
+    """"""
     pass
 
-def custom_asr(audio_path:str, use_funasr:bool=False):
+def custom_asr(audio_path:str, use_funasr:bool=False, model=None):
     if use_funasr:
         from funasr import AutoModel
         from funasr.utils.postprocess_utils import rich_transcription_postprocess
@@ -65,7 +67,6 @@ def custom_asr(audio_path:str, use_funasr:bool=False):
             vad_kwargs={"max_single_segment_time": 30000},
             device="auto",
         )
-        print(1111)
 
         # en
         res = model.generate(
@@ -80,8 +81,12 @@ def custom_asr(audio_path:str, use_funasr:bool=False):
         text = rich_transcription_postprocess(res[0]["text"])
 
         print(f"asr res: {text}")
+        return text
     else:
         result = model.transcribe(audio_path)
         print(result["text"])
+        return result["text"]
 
-main()
+if __name__== "__main__":
+    model = whisper.load_model("turbo")
+    audio_explain(model)

@@ -14,12 +14,19 @@ class ChatNLP(ChatManagerBase):
     def init_data(self):
         self.is_running = False
         self.llm = Qwen()
+        self.history = []
 
     
     async def get_nlp_resp(self, msg):
-        nlp_res = await self.llm.chat_stream(msg)
+        if not self.history:
+            self.history= [
+                {"role": "system", "content": ""}
+            ]
+        self.history.append({"role": "user", "content": msg})
+        nlp_res = await self.llm.chat_stream(msg, messages=self.history)
         # TODO: nlp 切分,要保证连续
         answer_id = "nlp_answer"
+        self.history.append({"role": "assistant", "content": nlp_res})
         await self.websocket.send(json.dumps({"nlp": nlp_res}, ensure_ascii=False))
         await self.put_nlp2tts(answer_id, nlp_res)
 
