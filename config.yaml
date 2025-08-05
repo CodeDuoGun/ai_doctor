@@ -1,2 +1,12 @@
 default:
   DASH_API_KEY: sk-54ffdb767a6e4d4f87df5a789a75ec9f
+  DEEPSEEK_API_URL: "https://api.deepseek.com/v1"
+  DEEPSEEK_API_KEY: "sk-a17c861e74ce49c6878efcae740baeed"
+  ARK_API_KEY: "f43df693-455a-4e3e-b987-d76d7b57f4c3"
+  ARK_API_URL: "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+  ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3"
+  DASHSCOPE_API_KEY: sk-54ffdb767a6e4d4f87df5a789a75ec9f
+  DASHSCOPE_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+  QWEN_API_URL: https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+  OPENIAI_BASE_URL: "https://api.qhaigc.net"
+  OPENIAI_API_KEY: "sk-rtF70RVTRn7f5QLAdTX0BIdAGZJ6zXueA16jpUvLmQRlK6NN"
