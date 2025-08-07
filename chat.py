@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import traceback
-
+import os
 import asyncio
 from http import HTTPStatus
 from websockets.asyncio.server import serve
@@ -29,9 +29,9 @@ async def echo(websocket):
         logger.info(f"收到消息{type(message)}")
         # 暂时处理文本类型
         if isinstance(message, str):
-            pass
-            asr_result = message
-            # asr_result = json.loads(message)
+            message = json.loads(message)
+            asr_result = message.get("msg", "")
+            await chat_instance.runtime_data.asr_msg_queue.put(asr_result)
         elif isinstance(message, bytes):
             # asr queue -> nlp
             print(len(message), message[:100])
@@ -123,6 +123,8 @@ async def aiohttp_server():
     app.router.add_post('/offer', offer)
     app.router.add_post('/start', start_chatting) # 先调用这个
     app.router.add_post('/stop', stop_chatting) # 先调用这个
+    # 静态资源映射 /static -> ./web
+    app.router.add_static('/static', path=os.path.join(os.getcwd(), 'web'), name='static')
     # Configure default CORS settings.
     cors = aiohttp_cors.setup(app, defaults={
             "*": aiohttp_cors.ResourceOptions(

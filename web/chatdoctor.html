@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI医疗小助手</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    /* 聊天整体容器 */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 800px;
+      height: 600px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    /* 聊天消息区 */
+    .chat-box {
+      flex: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      background: #f6f7f9;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      max-width: 80%;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .message.user .bubble {
+      background: #4caf50;
+      color: white;
+    }
+
+    .message.bot .bubble {
+      background: #e9ecef;
+      color: #333;
+    }
+
+    /* 输入区 */
+    .input-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: #fff;
+    }
+
+    .input-area textarea {
+      flex: 1;
+      resize: none;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      height: 40px;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-send {
+      background: #4caf50;
+      color: white;
+    }
+
+    .btn-voice {
+      background: #2196f3;
+      color: white;
+    }
+
+    /* 视频样式 */
+    video {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: black;
+    }
+  </style>
+
+  <!-- 录音相关 -->
+  <script src="recorder-core.js"></script>
+  <script src="pcm.js"></script>
+  <script src="wav.js"></script>
+</head>
+
+<body>
+  <h1>AI医疗小助手</h1>
+
+  <!-- 视频区域 -->
+  <video id="video" autoplay playsinline muted></video>
+
+  <!-- 聊天区域 -->
+  <div class="chat-container">
+    <div id="chat-box" class="chat-box">
+      <!-- 初始欢迎消息 -->
+      <div class="message bot">
+        <img src="/static/ai_girl.png" class="avatar" />
+        <div class="bubble">欢迎使用医疗小助手</div>
+      </div>
+    </div>
+
+  <!-- 输入区 -->
+  <div class="input-area">
+    <textarea id="chat-input" placeholder="请输入..."></textarea>
+    <button id="btn-send" class="btn btn-send">发送</button>
+    <button id="btn-mic" class="btn btn-mic">🎤</button>
+    <button id="ws-connect" class="btn btn-connect">连接</button>
+    <!-- <button id="stop-asr">停止识别</button> -->
+  </div>
+  </div>
+
+  <audio id="audio_record" type="audio/wav" controls style="display:none;"></audio>
+  <audio id="audio" autoplay></audio>
+
+  <!-- <script src="chatbot-ui.js"></script> -->
+  <script src="webrtc-offer.js"></script>
+  <script src="asr-client_v2.js"></script>
+</body>
+</html>
