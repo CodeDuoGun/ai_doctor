@@ -15,7 +15,7 @@ from langchain_community.document_loaders import (
 from langchain.docstore.document import Document
 from typing import List
 import os
-from app.utils.log import logger
+from utils.log import logger
 
 
 LOADER_MAPPING = {

@@ -21,7 +21,34 @@ btnStop.disabled = true;
 btnStart.disabled = true;
  
 btnConnect= document.getElementById('ws-connect');
+const chatInput = document.getElementById("chat-input");
 // btnConnect.onclick = start;
+
+// 回车发送消息
+chatInput.addEventListener("keydown", function (event) {
+  // 如果是输入法组合状态，直接返回
+  if (event.isComposing) return;
+
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault(); // 阻止换行
+
+    const text = chatInput.value.trim();
+    if (text === "") return;
+
+    // 本地 UI 添加气泡
+    appendMessage("user", text);
+
+    // 通过 WebSocket 发到后端
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ msg: text }));
+    } else {
+      appendMessage("系统", "❌ WebSocket未连接，无法发送消息");
+    }
+
+    // 清空输入框
+    chatInput.value = "";
+  }
+});
 
 // 连接按钮：建立 WebSocket + 启动 WebRTC
 btnConnect.addEventListener("click", () => {
