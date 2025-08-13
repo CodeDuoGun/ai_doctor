@@ -422,27 +422,6 @@ class ElasticsearchHandler:
         hits = response["hits"]["hits"]
         return hits
 
-    def search_by_keyword_bm25(self, index: str, keyword: str,
-                          field: str = "姓名", k: int = 5):
-        """
-        基于 BM25 的模糊匹配，优先匹配医生姓名
-        """
-        body = {
-            "size": k,
-            "query": {
-                "match": {
-                    field: {
-                        "query": keyword,
-                        "fuzziness": "AUTO"
-                    }
-                }
-            }
-        }
-        res = self.es.search(index=index, body=body)
-        if res and res["hits"]["hits"] and keyword!=res["hits"]["hits"][0]["_source"]["姓名"]:
-            return []
-        return res["hits"]["hits"]
-
     def search_hybrid(self,
                       index: str,
                       doctor_name: str,
