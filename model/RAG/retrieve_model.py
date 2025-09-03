@@ -2,7 +2,7 @@
 from model.model_base import Modelbase
 from model.model_base import ModelStatus
 from config.config import Config
-from env import get_app_root
+from env_code import get_app_root
 
 import os
 import shutil

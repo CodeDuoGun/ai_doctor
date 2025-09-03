@@ -24,7 +24,7 @@ from Internet.Internet_chain import InternetSearchChain
 from kg.Graph import GraphDao
 from config.config import Config
 from qa.purpose_type import userPurposeType
-from env import get_env_value
+from env_code import get_env_value
 
 
 _dao = GraphDao()
