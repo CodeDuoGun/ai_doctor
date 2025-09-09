@@ -3,7 +3,7 @@ from model.model_base import Modelbase
 from model.model_base import ModelStatus
 
 import os
-from env import get_app_root
+from env_code import get_app_root
 
 from langchain_community.embeddings import ModelScopeEmbeddings
 from langchain_core.vectorstores import VectorStoreRetriever

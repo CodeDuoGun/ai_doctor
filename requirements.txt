@@ -36,3 +36,5 @@ loguru
 websocket
 aiohttp-cors
 dynaconf
+# for internet search
+datasets==2.18.0

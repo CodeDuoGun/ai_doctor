@@ -4,7 +4,7 @@ from functools import lru_cache
 import yaml
 import os
 
-from env import get_app_root
+from env_code import get_app_root
 
 
 class Config(object):

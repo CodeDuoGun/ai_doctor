@@ -8,7 +8,7 @@ from docx.shared import Pt
 from docx.oxml.ns import qn 
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from typing import Dict
-from env import get_app_root
+from env_code import get_app_root
 
 _OUTPUT_DIR_DOCX = os.path.join(get_app_root(), "data/cache/docx")
 

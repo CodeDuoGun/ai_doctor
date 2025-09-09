@@ -2,7 +2,7 @@
 from client.ourAPI.client import OurAPI
 from client.zhipuAPI.client import Image_generate_client, Image_describe_client
 from client.zhipuAPI.client import Video_generate_client
-from env import get_env_value
+from env_code import get_env_value
 from qa.purpose_type import userPurposeType
 
 

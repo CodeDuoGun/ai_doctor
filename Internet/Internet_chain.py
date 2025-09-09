@@ -1,7 +1,7 @@
 from Internet.Internet_prompt import extract_question
 from Internet.retrieve_Internet import retrieve_html
 from client.clientfactory import Clientfactory
-from env import get_app_root
+from env_code import get_app_root
 
 import re
 import os
@@ -172,4 +172,5 @@ def has_html_files(directory_path):
         return False
     else:
         return False
-# InternetSearchChain("今天周几了,北京朝阳区天气怎么样", [])
+
+# InternetSearchChain("蛇床子是干嘛的", [])
