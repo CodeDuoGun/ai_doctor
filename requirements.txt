@@ -36,3 +36,4 @@ loguru
 websocket
 aiohttp-cors
 dynaconf
+pypinyin

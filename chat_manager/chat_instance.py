@@ -55,6 +55,7 @@ class ChatInstance:
             logger.info(f'启动： 房间启动的全部准备工作都做好了')
         except:
             logger.error(f' 启动任务队列出错 {traceback.format_exc()}')
+
     def start_tasks_in_main_thread(self):
         self.loop = asyncio.get_event_loop()  # 获取主线程的事件循环
         # await self.thread_function()  

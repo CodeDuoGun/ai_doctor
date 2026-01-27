@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>前端麦克风录音并保存为 WAV</title>
+  <style>
+    body {font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 24px; background:#f7fafc; color:#111827}
+    .card {background:#fff; padding:18px; border-radius:12px; box-shadow:0 6px 18px rgba(15,23,42,0.06); max-width:720px}
+    button {padding:10px 14px; margin-right:8px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; cursor:pointer}
+    button.primary {background:#2563eb; color:#fff; border-color:#2563eb}
+    pre {background:#0f172a;color:#e6eef8;padding:12px;border-radius:8px;overflow:auto}
+    .status {margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>前端麦克风录音并保存为 WAV 文件</h1>
+    <p>使用 <code>MediaRecorder</code> 采集音频，停止后将数据解码并编码为标准 PCM16 WAV 文件，供用户下载。</p>
+
+    <div>
+      <button id="btnStart" class="primary">开始录音</button>
+      <button id="btnStop" disabled>停止录音</button>
+      <button id="btnDownload" disabled>下载 WAV</button>
+      <label style="margin-left:12px"><input type="checkbox" id="autoDownload"> 录制结束后自动下载</label>
+    </div>
+
+    <div class="status" id="status">状态：未就绪</div>
+
+    <h3>播放预览（可选）</h3>
+    <audio id="player" controls></audio>
+
+    <h3>说明</h3>
+    <ul>
+      <li>在大部分现代浏览器（Chrome/Edge/Firefox/Safari）可用。</li>
+      <li>如果浏览器默认输出格式不是 WAV，脚本会把编码后的音频解码再编码为 WAV。</li>
+      <li>如需更高性能或更低延迟可改用 AudioWorklet（复杂度更高）。</li>
+    </ul>
+
+    <h3>调试输出</h3>
+    <pre id="log"></pre>
+  </div>
+
+<script>
+const btnStart = document.getElementById('btnStart');
+const btnStop = document.getElementById('btnStop');
+const btnDownload = document.getElementById('btnDownload');
+const statusEl = document.getElementById('status');
+const logEl = document.getElementById('log');
+const player = document.getElementById('player');
+const autoDownloadCheckbox = document.getElementById('autoDownload');
+
+let mediaRecorder = null;
+let chunks = [];
+let stream = null;
+let wavBlob = null;
+
+function log(...args){
+  console.log(...args);
+  logEl.textContent += args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ') + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function startRecording(){
+  try{
+    statusEl.textContent = '状态：请求麦克风权限...';
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    statusEl.textContent = '状态：正在录音';
+
+    // 使用 MediaRecorder 采集（浏览器会返回 webm/ogg/pcm 等，之后我们会统一转为 WAV）
+    mediaRecorder = new MediaRecorder(stream);
+    chunks = [];
+
+    mediaRecorder.ondataavailable = e => {
+      if(e.data && e.data.size>0) chunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      statusEl.textContent = '状态：录音已停止，处理中...';
+      try{
+        wavBlob = await buildWavFromChunks(chunks);
+        statusEl.textContent = '状态：已生成 WAV';
+
+        // 显示可播放预览
+        const url = URL.createObjectURL(wavBlob);
+        player.src = url;
+        btnDownload.disabled = false;
+
+        if(autoDownloadCheckbox.checked){
+          downloadBlob(wavBlob, `record_${new Date().toISOString().replace(/[:.]/g,'-')}.wav`);
+        }
+      }catch(err){
+        log('转换为 WAV 出错:', err);
+        statusEl.textContent = '状态：生成 WAV 失败（见控制台）';
+      }
+    };
+
+    mediaRecorder.start();
+    btnStart.disabled = true;
+    btnStop.disabled = false;
+    btnDownload.disabled = true;
+    log('mediaRecorder.start()');
+  }catch(err){
+    log('获取麦克风失败：', err);
+    statusEl.textContent = '状态：获取麦克风失败，检查权限或设备';
+  }
+}
+
+function stopRecording(){
+  if(mediaRecorder && mediaRecorder.state !== 'inactive'){
+    mediaRecorder.stop();
+    // 停止所有 track
+    if(stream){
+      stream.getTracks().forEach(t=>t.stop());
+      stream = null;
+    }
+    btnStart.disabled = false;
+    btnStop.disabled = true;
+  }
+}
+
+btnStart.addEventListener('click', startRecording);
+btnStop.addEventListener('click', stopRecording);
+btnDownload.addEventListener('click', ()=>{
+  if(wavBlob) downloadBlob(wavBlob, `record_${new Date().toISOString().replace(/[:.]/g,'-')}.wav`);
+});
+
+function downloadBlob(blob, filename){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // 释放 URL
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+}
+
+async function buildWavFromChunks(chunks){
+  if(!chunks || chunks.length===0) throw new Error('没有录音数据');
+
+  // 合并为一个 Blob
+  const superBlob = new Blob(chunks, { type: chunks[0].type || 'audio/webm' });
+  log('合并 blob，大小:', superBlob.size, '类型:', superBlob.type);
+
+  const arrayBuffer = await superBlob.arrayBuffer();
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // 某些浏览器在用户手势之外创建 AudioContext 会被暂停，确保 resume
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  // 解码为 AudioBuffer
+  const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+  log('解码得到 AudioBuffer:', audioBuffer.numberOfChannels, 'ch,', audioBuffer.length, 'frames, sr=', audioBuffer.sampleRate);
+
+  // 将 AudioBuffer 按 PCM16 编码为 WAV
+  const wavArrayBuffer = audioBufferToWav(audioBuffer);
+  const wavBlob = new Blob([wavArrayBuffer], { type: 'audio/wav' });
+  log('生成 WAV 大小:', wavBlob.size);
+  return wavBlob;
+}
+
+// 将 AudioBuffer 转为 WAV 的 ArrayBuffer（PCM16, 44-byte header）
+function audioBufferToWav(buffer, options){
+  options = options || {};
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const format = 1; // PCM
+  const bitsPerSample = 16;
+
+  // 获取 interleaved PCM16 数据
+  let interleaved;
+  if(numChannels === 2){
+    interleaved = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
+  } else {
+    interleaved = buffer.getChannelData(0);
+  }
+
+  const bytesPerSample = bitsPerSample / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataSize = interleaved.length * bytesPerSample;
+  const bufferLength = 44 + dataSize;
+  const wavBuffer = new ArrayBuffer(bufferLength);
+  const view = new DataView(wavBuffer);
+
+  /* RIFF identifier */
+  writeString(view, 0, 'RIFF');
+  /* file length */
+  view.setUint32(4, 36 + dataSize, true);
+  /* RIFF type */
+  writeString(view, 8, 'WAVE');
+  /* format chunk identifier */
+  writeString(view, 12, 'fmt ');
+  /* format chunk length */
+  view.setUint32(16, 16, true);
+  /* sample format (raw) */
+  view.setUint16(20, format, true);
+  /* channel count */
+  view.setUint16(22, numChannels, true);
+  /* sample rate */
+  view.setUint32(24, sampleRate, true);
+  /* byte rate (sample rate * block align) */
+  view.setUint32(28, byteRate, true);
+  /* block align (channel count * bytes per sample) */
+  view.setUint16(32, blockAlign, true);
+  /* bits per sample */
+  view.setUint16(34, bitsPerSample, true);
+  /* data chunk identifier */
+  writeString(view, 36, 'data');
+  /* data chunk length */
+  view.setUint32(40, dataSize, true);
+
+  // 写入 PCM16 样本，偏移 44
+  floatTo16BitPCM(view, 44, interleaved);
+
+  return wavBuffer;
+}
+
+function writeString(view, offset, string){
+  for (let i = 0; i < string.length; i++){
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+function floatTo16BitPCM(output, offset, input){
+  for (let i = 0; i < input.length; i++, offset += 2){
+    let s = Math.max(-1, Math.min(1, input[i]));
+    // scale to 16-bit signed int
+    s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    output.setInt16(offset, s, true);
+  }
+}
+
+function interleave(inputL, inputR){
+  const length = inputL.length + inputR.length;
+  const result = new Float32Array(length);
+  let index = 0, inputIndex = 0;
+  while (index < length){
+    result[index++] = inputL[inputIndex];
+    result[index++] = inputR[inputIndex];
+    inputIndex++;
+  }
+  return result;
+}
+
+</script>
+</body>
+</html>
