@@ -204,3 +204,4 @@ model/wav2lip/face_detection/detection/sfd/*.pth
 results/*
 ai_emr_customer/app/data
 ai_emr_customer/app/model
+asr/*.json

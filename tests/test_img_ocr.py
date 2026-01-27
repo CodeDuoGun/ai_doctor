@@ -85,5 +85,8 @@ def extract_image_info_by_model():
     print("Final Response Content:", content)
 
 
+def ali_ocr_vl():
+    pass
+
 if __name__ == "__main__":
     extract_image_info_by_model()
