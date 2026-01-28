@@ -21,7 +21,7 @@ import pyaudio
 import websockets
 from websockets.server import WebSocketServerProtocol
 
-from ai_emr_customer.app.asr.AliRealtime_ASR import AliRealtimeASR
+from asr.AliRealtime_ASR import AliRealtimeASR
 from dotenv import load_dotenv
 
 load_dotenv()

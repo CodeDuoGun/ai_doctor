@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Realtime ASR WebSocket Demo</title>
+    <style>
+      body {
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial;
+        margin: 20px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 10px 14px;
+        font-size: 14px;
+      }
+      #status { color: #666; }
+      #final {
+        font-size: 18px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+      #intermediate {
+        color: #888;
+        font-style: italic;
+        margin-left: 6px;
+      }
+      .card {
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 14px;
+      }
+      code {
+        background: #f7f7f7;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      p.notice {
+        color: #d33;
+        margin-top: 10px;
+      }
+      .audio-box {
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🎤 Realtime ASR (Browser → WebSocket → Backend)</h2>
+
+    <div class="card">
+      <div class="row">
+        <button id="btnStart">开始</button>
+        <button id="btnStop" disabled>停止</button>
+        <span id="status">未连接</span>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <div id="final"></div><span id="intermediate"></span>
+      </div>
+
+      <p class="notice" id="notice"></p>
+
+      <div class="audio-box">
+        <strong>🎧 本次录音回放：</strong><br/>
+        <audio id="audioPlayer" controls style="width: 100%; margin-top: 8px;"></audio>
+      </div>
+
+      <p style="margin-top: 12px; color:#666;">
+        后端 WebSocket：<code id="wsUrl"></code>
+      </p>
+    </div>
+
+    <script>
+      const WS_PORT = 8080;
+      const wsProto = location.protocol === "https:" ? "wss" : "ws";
+      const wsUrl = `${wsProto}://${location.hostname}:${WS_PORT}/ws`;
+      document.getElementById("wsUrl").textContent = wsUrl;
+
+      const statusEl = document.getElementById("status");
+      const finalEl = document.getElementById("final");
+      const interEl = document.getElementById("intermediate");
+      const noticeEl = document.getElementById("notice");
+      const audioEl = document.getElementById("audioPlayer");
+
+      const btnStart = document.getElementById("btnStart");
+      const btnStop = document.getElementById("btnStop");
+
+      let ws = null;
+      let audioCtx = null;
+      let mediaStream = null;
+      let processor = null;
+      let source = null;
+
+      const TARGET_SAMPLE_RATE = 16000;
+      let recordedChunks = [];
+
+      function appendFinal(text) {
+        if (!text) return;
+        finalEl.textContent += text + " ";
+      }
+
+      function downsampleBuffer(buffer, inputRate, targetRate) {
+        if (inputRate === targetRate) return buffer;
+        const ratio = inputRate / targetRate;
+        const newLength = Math.round(buffer.length / ratio);
+        const result = new Float32Array(newLength);
+        let offsetResult = 0;
+        let offsetBuffer = 0;
+        while (offsetResult < result.length) {
+          const nextOffset = Math.round((offsetResult + 1) * ratio);
+          let sum = 0, count = 0;
+          for (let i = offsetBuffer; i < nextOffset && i < buffer.length; i++) {
+            sum += buffer[i];
+            count++;
+          }
+          result[offsetResult++] = sum / count;
+          offsetBuffer = nextOffset;
+        }
+        return result;
+      }
+
+      function floatTo16BitPCM(float32) {
+        const buf = new ArrayBuffer(float32.length * 2);
+        const view = new DataView(buf);
+        let offset = 0;
+        for (let i = 0; i < float32.length; i++, offset += 2) {
+          let s = Math.max(-1, Math.min(1, float32[i]));
+          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+        return buf;
+      }
+
+      function encodeWAV(float32Array) {
+        const buffer = new ArrayBuffer(44 + float32Array.length * 2);
+        const view = new DataView(buffer);
+
+        function writeString(offset, str) {
+          for (let i = 0; i < str.length; i++) {
+            view.setUint8(offset + i, str.charCodeAt(i));
+          }
+        }
+
+        writeString(0, "RIFF");
+        view.setUint32(4, 36 + float32Array.length * 2, true);
+        writeString(8, "WAVE");
+        writeString(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, TARGET_SAMPLE_RATE, true);
+        view.setUint32(28, TARGET_SAMPLE_RATE * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, "data");
+        view.setUint32(40, float32Array.length * 2, true);
+
+        let offset = 44;
+        for (let i = 0; i < float32Array.length; i++, offset += 2) {
+          let s = Math.max(-1, Math.min(1, float32Array[i]));
+          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+        return new Blob([view], { type: "audio/wav" });
+      }
+
+      async function start() {
+        finalEl.textContent = "";
+        interEl.textContent = "";
+        noticeEl.textContent = "";
+        recordedChunks = [];
+        audioEl.src = "";
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          statusEl.textContent = "浏览器不支持 getUserMedia";
+          return;
+        }
+
+        if (!window.isSecureContext) {
+          noticeEl.textContent = "⚠️ 请在 HTTPS 或 localhost 环境访问";
+        }
+
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaStreamSource(mediaStream);
+
+        ws = new WebSocket(wsUrl);
+        ws.binaryType = "arraybuffer";
+
+        ws.onopen = () => statusEl.textContent = "识别中...";
+        ws.onclose = () => statusEl.textContent = "已断开";
+
+        ws.onmessage = (e) => {
+          if (typeof e.data !== "string") return;
+          const msg = JSON.parse(e.data);
+          if (msg.type === "intermediate") interEl.textContent = msg.text || "";
+          if (msg.type === "final") {
+            appendFinal(msg.text || "");
+            interEl.textContent = "";
+          }
+        };
+
+        processor = audioCtx.createScriptProcessor(4096, 1, 1);
+        const inputRate = audioCtx.sampleRate;
+
+        processor.onaudioprocess = (e) => {
+          if (!ws || ws.readyState !== WebSocket.OPEN) return;
+          const input = e.inputBuffer.getChannelData(0);
+          const downsampled = downsampleBuffer(input, inputRate, TARGET_SAMPLE_RATE);
+          recordedChunks.push(new Float32Array(downsampled));
+          ws.send(floatTo16BitPCM(downsampled));
+        };
+
+        source.connect(processor);
+        processor.connect(audioCtx.destination);
+
+        btnStart.disabled = true;
+        btnStop.disabled = false;
+      }
+
+      async function stop() {
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+
+        try { ws?.send(JSON.stringify({ type: "stop" })); } catch {}
+        try { ws?.close(); } catch {}
+        ws = null;
+
+        processor?.disconnect();
+        source?.disconnect();
+        mediaStream?.getTracks().forEach(t => t.stop());
+
+        processor = source = mediaStream = null;
+        await audioCtx?.close();
+        audioCtx = null;
+
+        // 🎧 生成 WAV 并绑定播放器
+        const all = recordedChunks.reduce(
+          (acc, cur) => {
+            const tmp = new Float32Array(acc.length + cur.length);
+            tmp.set(acc);
+            tmp.set(cur, acc.length);
+            return tmp;
+          },
+          new Float32Array()
+        );
+
+        const wavBlob = encodeWAV(all);
+        audioEl.src = URL.createObjectURL(wavBlob);
+
+        statusEl.textContent = "已停止，可回放";
+      }
+
+      btnStart.onclick = () => start().catch(e => statusEl.textContent = e);
+      btnStop.onclick = () => stop().catch(e => statusEl.textContent = e);
+    </script>
+  </body>
+</html>
