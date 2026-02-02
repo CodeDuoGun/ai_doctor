@@ -129,9 +129,9 @@ class RealtimeFunASR:
         callback = _QueueCallback(result_queue)
 
         recognition = Recognition(
-            # model=self.model,
-            model = "c128274d818844f6a8c58c5c897834ef",
-            # vocabulary_id="vocab-shylasr0-b8205e9427f8496e8a3d0c3c6d624b44",
+            model=self.model,
+            # model = "c128274d818844f6a8c58c5c897834ef",
+            # vocabulary_id="vocab-shylasr0-9fff1cc3cfcf44d7ba613633b3cc9b3e",
             format=audio_format,
             sample_rate=sample_rate,
             semantic_punctuation_enabled=semantic_punctuation_enabled,
