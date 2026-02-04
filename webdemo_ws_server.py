@@ -32,8 +32,11 @@ import websockets
 from websockets.server import WebSocketServerProtocol
 
 from asr.RealtimeFunASR import RealtimeFunASR
-from gradio_asr_demo import postprocess_asr
+from asr.utils.asr_postprocessor import postprocess_asr
 from utils.log import logger
+from datetime import datetime
+import uuid
+from asr.utils.tool import save_pcm16le_to_wav
 
 
 HTTP_HOST = "0.0.0.0"
@@ -42,6 +45,8 @@ WS_HOST = "0.0.0.0"
 WS_PORT = 7862
 
 STATIC_DIR = Path(__file__).parent / "webdemo_static"
+AUDIO_SAVE_DIR = Path(__file__).parent / "asr" / "data"
+AUDIO_SAVE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class _StaticHandler(SimpleHTTPRequestHandler):
@@ -72,6 +77,17 @@ async def _ws_handler(ws: WebSocketServerProtocol) -> None:
     audio_q: "asyncio.Queue[Optional[bytes]]" = asyncio.Queue(maxsize=200)
     stop_evt = threading.Event()
 
+    audio_buffer = bytearray()
+    final_texts: list[str] = []
+
+    session_id = datetime.now().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]
+    session_dir = AUDIO_SAVE_DIR / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+
+    wav_path = session_dir / "audio.wav"
+    txt_path = session_dir / "asr.txt"
+    meta_path = session_dir / "meta.json"
+
     async def send_json(msg: dict) -> None:
         await ws.send(json.dumps(msg, ensure_ascii=False))
 
@@ -92,11 +108,13 @@ async def _ws_handler(ws: WebSocketServerProtocol) -> None:
             )
         elif event == "sentence_end":
             logger.info(f"before postprocess: {text}")
-            text = postprocess_asr(text)
-            logger.info(f"after postprocess: {text}")
-            asyncio.run_coroutine_threadsafe(
-                send_json({"type": "final", "text": text}), loop
-            )
+            if text:
+                text = postprocess_asr(text)
+                logger.info(f"after postprocess: {text}")
+                final_texts.append(text)
+                asyncio.run_coroutine_threadsafe(
+                    send_json({"type": "final", "text": text}), loop
+                )
         elif event == "error":
             asyncio.run_coroutine_threadsafe(
                 send_json({"type": "error", "text": text}), loop
@@ -137,6 +155,8 @@ async def _ws_handler(ws: WebSocketServerProtocol) -> None:
             except asyncio.QueueFull:
                 # drop if client sends too fast
                 pass
+            audio_buffer.extend(message)
+
     finally:
         stop_evt.set()
         try:
@@ -148,6 +168,40 @@ async def _ws_handler(ws: WebSocketServerProtocol) -> None:
             if not t.is_alive():
                 break
             time.sleep(0.05)
+            # 🔴 新增：保存本次录音
+        if audio_buffer:
+            try:
+                save_pcm16le_to_wav(
+                    pcm_bytes=bytes(audio_buffer),
+                    wav_path=wav_path,
+                )
+                logger.info(f"Audio saved: {wav_path}")
+            except Exception as e:
+                logger.exception(f"Failed to save audio: {e}")
+        if final_texts:
+            try:
+                txt_path.write_text(
+                    "\n".join(final_texts),
+                    encoding="utf-8"
+                )
+                logger.info(f"ASR text saved: {txt_path}")
+            except Exception as e:
+                logger.exception(f"Failed to save asr text: {e}")
+        try:
+            meta = {
+                "session_id": session_id,
+                "sample_rate": 16000,
+                "channels": 1,
+                "bytes": len(audio_buffer),
+                "sentences": len(final_texts),
+                "created_at": datetime.now().isoformat(),
+            }
+            meta_path.write_text(
+                json.dumps(meta, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            logger.exception("Failed to save meta.json")
 
 
 async def main() -> None:
