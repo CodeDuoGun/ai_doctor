@@ -183,6 +183,9 @@ def correct_herb_by_pinyin_v2(text: str) -> str:
 
     # 药材表最长长度
     max_len = max(len(herb) for herb in DOMAIN_TERMS)
+    # 原文包含完整药名（最高优先级）
+    if text in DOMAIN_TERMS:
+        return text
 
     # ----- 1️⃣ 长度完全一致优先匹配 -----
     for herb in DOMAIN_TERMS:
@@ -214,12 +217,14 @@ def correct_herb_by_pinyin_v2(text: str) -> str:
     return ""  # 没匹配到
 
 
-PUNCT_SPLIT_PATTERN = r"[，。；、,.]"
+# PUNCT_SPLIT_PATTERN = r"[，。；、,.]"
+PUNCT_SPLIT_PATTERN = r"[，；、,.]"
 
 def split_by_punctuation(text: str) -> list[str]:
     """
     按中文/英文标点切分 ASR 文本
     """
+    text = text.replace("。", "").replace("\n", "，")
     segments = re.split(PUNCT_SPLIT_PATTERN, text)
     return [seg.strip() for seg in segments if seg.strip()]
 
@@ -261,16 +266,15 @@ def process_single_segment(segment: str) -> list[str]:
     pattern = re.compile(r"([\u4e00-\u9fa5]+)?(\d+(?:\.\d+)?)(\s*%s)?" % UNIT_PATTERN)
 
     results = []
-
     for match in pattern.finditer(text):
         herb = match.group(1) or ""
         num = match.group(2)
         unit = match.group(3) or ""
-        print(f"before correct: {herb}, {num}, {unit}")
+        logger.info(f"before correct: {herb}, {num}, {unit}")
         herb = correct_herb_by_pinyin_v2(herb)
         if not herb:
             continue
-        print(f"after correct {herb}, {num}, {unit}")
+        logger.info(f"after correct_herb_by_pinyin_v2: {herb}, {num}, {unit}")
         unit = UNIT_NORMALIZE_MAP.get(unit, unit)
         results.append(f"{herb}{num}{unit}")
 
@@ -346,8 +350,9 @@ def postprocess_asr(asr_text: str) -> str:
         return asr_text
 
     # ===== 0️⃣ 按标点切分 =====
+    logger.info(f"asr_text: {asr_text}")
     segments = split_by_punctuation(asr_text)
-    logger.debug(f"segments: {segments}")
+    logger.info(f"segments: {segments}")
 
     all_results = []
 
@@ -359,21 +364,21 @@ def postprocess_asr(asr_text: str) -> str:
             all_results.extend(seg_results)
 
     # ===== 兜底策略（可选）=====
-    if not all_results:
-        # 你原来的兜底逻辑也可以放在这里
-        tokens = re.findall(
-            rf"[\u4e00-\u9fa5]+|\d+(?:\.\d+)?\s*{UNIT_PATTERN}",
-            asr_text
-        )
-        corrected_tokens = []
-        for tok in tokens:
-            if re.search(r"\d", tok):
-                corrected_tokens.append(tok)
-            else:
-                corrected_tokens.append(correct_herb_by_pinyin(tok))
-        res = ",".join(corrected_tokens)
-        logger.info(f"FINAL res {res}")
-        return res 
+    # if not all_results:
+    #     # 你原来的兜底逻辑也可以放在这里
+    #     tokens = re.findall(
+    #         rf"[\u4e00-\u9fa5]+|\d+(?:\.\d+)?\s*{UNIT_PATTERN}",
+    #         asr_text
+    #     )
+    #     corrected_tokens = []
+    #     for tok in tokens:
+    #         if re.search(r"\d", tok):
+    #             corrected_tokens.append(tok)
+    #         else:
+    #             corrected_tokens.append(correct_herb_by_pinyin(tok))
+    #     res = ",".join(corrected_tokens)
+    #     logger.info(f"FINAL res {res}")
+    #     return res 
     res = "，".join(all_results)
     
     logger.info(f"FINAL res {res}")
@@ -388,4 +393,6 @@ def postprocess_asr(asr_text: str) -> str:
 
     # text = postprocess_asr("党参的嗯复活机会十五克")
     # text = postprocess_asr("三七一百克")
+    # text = postprocess_asr("这个是大树皮6克")
     # text = postprocess_asr("疼梨根30g，就怎么那个逻辑啊，都在一个方法里面啊，黄芩片30g。这不是缺损，这是找不到了，往上往上out对，就这个out out还烦点了，点我我不是看那个啊。")
+    # text = postprocess_asr("炒苦杏仁6克，黄破8克，大黄5克，火麻仁9克，陈皮10克，鱼腥草11克，浙贝母9克，叶干。")

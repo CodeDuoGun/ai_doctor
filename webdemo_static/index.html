@@ -25,6 +25,22 @@
         line-height: 1.6;
         white-space: pre-wrap;
       }
+      #processed {
+        font-size: 18px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        margin-top: 16px;
+        padding: 12px;
+        background: #f0f7ff;
+        border-radius: 8px;
+        border: 1px solid #d0e3ff;
+      }
+      .processed-label {
+        font-size: 14px;
+        color: #0066cc;
+        font-weight: bold;
+        margin-bottom: 6px;
+      }
       #intermediate {
         color: #888;
         font-style: italic;
@@ -63,6 +79,11 @@
         <div id="final"></div><span id="intermediate"></span>
       </div>
 
+      <div id="processedContainer" style="display: none;">
+        <div class="processed-label">✨ 后处理结果：</div>
+        <div id="processed"></div>
+      </div>
+
       <p class="notice" id="notice"></p>
 
       <div class="audio-box">
@@ -86,6 +107,8 @@
       const interEl = document.getElementById("intermediate");
       const noticeEl = document.getElementById("notice");
       const audioEl = document.getElementById("audioPlayer");
+      const processedContainer = document.getElementById("processedContainer");
+      const processedEl = document.getElementById("processed");
 
       const btnStart = document.getElementById("btnStart");
       const btnStop = document.getElementById("btnStop");
@@ -98,6 +121,7 @@
 
       const TARGET_SAMPLE_RATE = 16000;
       let recordedChunks = [];
+      let allFinalTexts = []; // 存储所有 final ASR 结果
 
       function appendFinal(text) {
         if (!text) return;
@@ -172,6 +196,9 @@
         interEl.textContent = "";
         noticeEl.textContent = "";
         recordedChunks = [];
+        allFinalTexts = []; // 重置 final 结果数组
+        processedContainer.style.display = "none";
+        processedEl.textContent = "";
         audioEl.src = "";
 
         if (!navigator.mediaDevices?.getUserMedia) {
@@ -198,7 +225,9 @@
           const msg = JSON.parse(e.data);
           if (msg.type === "intermediate") interEl.textContent = msg.text || "";
           if (msg.type === "final") {
-            appendFinal(msg.text || "");
+            const text = msg.text || "";
+            appendFinal(text);
+            allFinalTexts.push(text); // 收集 final 结果
             interEl.textContent = "";
           }
         };
@@ -219,6 +248,37 @@
 
         btnStart.disabled = true;
         btnStop.disabled = false;
+      }
+
+      async function postprocessAsr() {
+        if (allFinalTexts.length === 0) {
+          return [];
+        }
+
+        try {
+          const response = await fetch("/postprocess_asr", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ texts: allFinalTexts }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+          if (result.success) {
+            return result.processed_texts || [];
+          } else {
+            console.error("Postprocess error:", result.error);
+            return [];
+          }
+        } catch (e) {
+          console.error("Failed to call postprocess_asr:", e);
+          return [];
+        }
       }
 
       async function stop() {
@@ -251,7 +311,20 @@
         const wavBlob = encodeWAV(all);
         audioEl.src = URL.createObjectURL(wavBlob);
 
-        statusEl.textContent = "已停止，可回放";
+        // 调用后端 postprocess_asr 接口
+        if (allFinalTexts.length > 0) {
+          statusEl.textContent = "正在处理文本...";
+          const processedTexts = await postprocessAsr();
+          if (processedTexts.length > 0) {
+            processedContainer.style.display = "block";
+            processedEl.textContent = processedTexts.join(" ");
+            statusEl.textContent = "已完成";
+          } else {
+            statusEl.textContent = "处理失败";
+          }
+        } else {
+          statusEl.textContent = "已停止";
+        }
       }
 
       btnStart.onclick = () => start().catch(e => statusEl.textContent = e);

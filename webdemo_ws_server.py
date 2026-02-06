@@ -53,6 +53,49 @@ class _StaticHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
+    def do_POST(self):
+        """处理 /postprocess_asr 接口"""
+        if self.path == "/postprocess_asr":
+            try:
+                content_length = int(self.headers.get("Content-Length", 0))
+                post_data = self.rfile.read(content_length)
+                data = json.loads(post_data.decode("utf-8"))
+
+                texts = data.get("texts", [])
+                if not isinstance(texts, list):
+                    texts = [texts]
+
+                processed_texts = []
+
+                text = "".join(texts)
+                if text:
+                    processed = postprocess_asr(text)
+                    processed_texts.append(processed)
+                else:
+                    processed_texts.append("")
+
+                response = json.dumps(
+                    {"success": True, "processed_texts": processed_texts},
+                    ensure_ascii=False
+                )
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(response.encode("utf-8"))
+            except Exception as e:
+                logger.exception(f"Error in /postprocess_asr: {e}")
+                response = json.dumps(
+                    {"success": False, "error": str(e)},
+                    ensure_ascii=False
+                )
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(response.encode("utf-8"))
+        else:
+            self.send_response(404)
+            self.end_headers()
+
 
 def _start_http_server() -> None:
     STATIC_DIR.mkdir(parents=True, exist_ok=True)
@@ -107,10 +150,10 @@ async def _ws_handler(ws: WebSocketServerProtocol) -> None:
                 send_json({"type": "intermediate", "text": text}), loop
             )
         elif event == "sentence_end":
-            logger.info(f"before postprocess: {text}")
+            # logger.info(f"before postprocess: {text}")
             if text:
-                text = postprocess_asr(text)
-                logger.info(f"after postprocess: {text}")
+                # text = postprocess_asr(text)
+                # logger.info(f"after postprocess: {text}")
                 final_texts.append(text)
                 asyncio.run_coroutine_threadsafe(
                     send_json({"type": "final", "text": text}), loop
