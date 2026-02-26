@@ -131,7 +131,7 @@ class RealtimeFunASR:
         recognition = Recognition(
             model=self.model,
             # model = "c128274d818844f6a8c58c5c897834ef",
-            vocabulary_id="vocab-shylasr0-9fff1cc3cfcf44d7ba613633b3cc9b3e",
+            vocabulary_id="vocab-shylasr0-04d02cc8f3714a5d805f0a45955776c0",
             format=audio_format,
             sample_rate=sample_rate,
             semantic_punctuation_enabled=semantic_punctuation_enabled,

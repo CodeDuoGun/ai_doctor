@@ -13,16 +13,22 @@ def save_hot2json():
     count = 0
     # 正序排序
     print(type(df["usage_count"].values[0]) )
+    print(len(df["drug_name"].values))
     df = df.sort_values(by=['usage_count'], ascending=False)
     print(df["drug_name"])
     for word in df["drug_name"].values:
-        if res and len(res) % 500==0:
+        if count!=0 and len(res) % 500==0:
             # save
             with open(f"asr/hotwords_{count:02d}.json", "w", encoding="utf-8") as f:
                 json.dump(res, f, ensure_ascii=False, indent=2)
             res = []
-            count +=1
-        res.append({"text": word, "weight": 4, "lang": "zh"})
+        res.append({"text": word, "weight": 5, "lang": "zh"})
+        count +=1
+    print(res)
+    print(count)
+    if len(res) < 500:
+        with open(f"asr/hotwords_{count:02d}.json", "w", encoding="utf-8") as f:
+            json.dump(res, f, ensure_ascii=False, indent=2)
 
 
 def write_hotwords():
@@ -40,6 +46,6 @@ def write_hotwords():
 
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 #     # write_hotwords()
-#     save_hot2json()
+    save_hot2json()

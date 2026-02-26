@@ -73,6 +73,7 @@ if __name__ == "__main__":
     parser.add_argument("operator")
     args = parser.parse_args()
     count = 0
+    # vocab-shylasr0-04d02cc8f3714a5d805f0a45955776c0  vocab-shylasr0-d93cdf71371e41fd94285a4ea7a4f7f9
     if args.operator == "create":
         for json_file in sorted(glob.glob("asr/*.json")):
             prefix = f"shylasr{count}"
@@ -86,6 +87,7 @@ if __name__ == "__main__":
         vbs = manager._list()
         for vb in vbs:
             manager._delete(vb["vocabulary_id"])
+            print(f"delete {vb['vocabulary_id']} success")
     elif args.operator == "list":
         vbs = manager._list() 
     elif args.operator == "update":
