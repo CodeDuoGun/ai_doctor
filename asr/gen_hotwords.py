@@ -46,6 +46,6 @@ def write_hotwords():
 
 
 
-if __name__ == "__main__":
-#     # write_hotwords()
-    save_hot2json()
+# if __name__ == "__main__":
+# #     # write_hotwords()
+#     save_hot2json()
