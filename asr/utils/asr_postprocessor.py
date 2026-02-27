@@ -27,15 +27,20 @@ def get_domain_terms():
     file = "data/医保中草药数据_共11071条.csv"
     df = pd.read_csv(file)
     return df["名称"].values
+
+def load_values_from_txt(file_path: str) -> list:
+    with open(file_path, "r", encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
+    
     
 # ===== 领域词 =====
-DOMAIN_TERMS = get_domain_terms()
+DOMAIN_TERMS = load_values_from_txt("asr/hotwords.txt")
 
 # ===== 强规则纠错 =====
 CONFUSION_MAP = {
     "断信时": "锻信石",
     "断信石": "锻信石",
-    "时刻": "十克"
+    "时刻": "10克"
 }
 
 CN_NUM = {
@@ -102,9 +107,14 @@ UNIT_NORMALIZE_MAP = {
     "千克": "kg",
     "公斤": "kg",
     "袋": "袋",
+    "条": "条",
+    "瓶": "瓶",
+    "对": "对",
+    "朵": "朵",
+    "个": "个"
 }
 
-UNIT_PATTERN = r"(?:mg|g|kg|袋)"
+UNIT_PATTERN = r"(?:mg|g|kg|袋|条|瓶|对|朵|个)"
 
 DIGIT_HERBS = [
     herb for herb in DOMAIN_TERMS
@@ -232,22 +242,24 @@ def split_by_punctuation(text: str) -> list[str]:
 def process_single_segment(segment: str) -> list[str]:
     text = segment
 
-    # ===== 0️⃣ 三七特判（必须最先）⬅️ 新增 =====
+    # ===== 0 硬规则纠错 =====
+    for wrong, right in CONFUSION_MAP.items():
+        text = text.replace(wrong, right)
+
+    # ===== 1 三七特判（必须最先）=====
     text = handle_sanqi_special(text)
     logger.debug(f"sanqi res {text}")
 
-    # ===== 1️⃣ 段内全量中文数字 → 阿拉伯数字 ⬅️ 新增 =====
+    # ===== 2 段内全量中文数字 → 阿拉伯数字  =====
     text = replace_zh_num_with_arabic(text)
     logger.debug(f"num res {text}")
 
-    # ===== 2️⃣ 基础清洗 =====
+    # ===== 3 基础清洗 =====
     for zh, en in UNIT_NORMALIZE_MAP.items():
         text = text.replace(zh, en)
     text = re.sub(r"\s+", " ", text).strip()
 
-    # ===== 3️⃣ 硬规则纠错 =====
-    for wrong, right in CONFUSION_MAP.items():
-        text = text.replace(wrong, right)
+
 
     # results = extract_herbs_with_dose(text, DOMAIN_TERMS)
     # ===== 4️⃣ 构造药名 Pattern =====
@@ -396,3 +408,4 @@ def postprocess_asr(asr_text: str) -> str:
     # text = postprocess_asr("这个是大树皮6克")
     # text = postprocess_asr("疼梨根30g，就怎么那个逻辑啊，都在一个方法里面啊，黄芩片30g。这不是缺损，这是找不到了，往上往上out对，就这个out out还烦点了，点我我不是看那个啊。")
     # text = postprocess_asr("炒苦杏仁6克，黄破8克，大黄5克，火麻仁9克，陈皮10克，鱼腥草11克，浙贝母9克，叶干。")
+    # text = postprocess_asr("龙胆时刻。炒栀子6克，黄芩12克，黄连6克，淡竹叶8克，通草3克，盐车前子8克，泽泻8克。鸡骨草10克，桃仁9克，红花8克，当归9克，丹参12克，生地黄32克。地龙五六克。至少八个。烫水蛭二克，瓜蒌子十克。呃，线下。薤白六克。醋延胡索9克。对。炒川楝子4克，石菖蒲9克，竹茹8克，清半夏3克，醋香附5克，白芍12克，醋柴胡10克，制远志9克。茯神9克，仙鹤草12克。炒酸枣仁18克，炒苦杏仁4克。那对。")
