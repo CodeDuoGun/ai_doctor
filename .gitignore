@@ -209,3 +209,6 @@ asr/*.json
 asr/data
 alibabacloud-nls-python-sdk/
 HuatuoGPT-sft-data-v1/
+
+# vscode
+.vscode/
